@@ -21,8 +21,11 @@
       <p class="text-sm opacity-70">Books, Datasets & Design Assets</p>
     </div>
     <div class="flex gap-2">
+      <button onclick="openWalletModal()" class="text-xs px-3 py-1.5 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded-lg font-semibold flex items-center gap-1">
+        💳 <span id="header-wallet-bal">0.00 ETB</span>
+      </button>
       <button onclick="openHistoryModal()" class="text-xs px-3 py-1.5 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded-lg font-semibold">My Account</button>
-      <!-- Admin Button (Hidden by default, unlocked ONLY for @WDemeke1) -->
+      <!-- Admin Button (Unlocked ONLY for @WDemeke1) -->
       <button id="toggle-view" onclick="toggleAdminMode()" class="hidden text-xs px-3 py-1.5 bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 rounded-lg font-semibold">Admin Panel</button>
     </div>
   </header>
@@ -42,12 +45,62 @@
     </div>
   </div>
 
+  <!-- WALLET DEPOSIT & WITHDRAWAL MODAL -->
+  <div id="wallet-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+    <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 max-w-md w-full space-y-4 border border-gray-700 shadow-2xl">
+      <div class="flex justify-between items-center border-b pb-3 border-gray-200 dark:border-gray-800">
+        <h3 class="text-lg font-bold">My Store Wallet</h3>
+        <span id="modal-wallet-bal" class="text-base font-bold text-green-600">0.00 ETB</span>
+      </div>
+
+      <!-- Action Tabs: Deposit vs Withdraw -->
+      <div class="grid grid-cols-2 gap-2">
+        <button id="btn-tab-deposit" onclick="switchWalletTab('deposit')" class="py-2 text-xs font-bold rounded-lg bg-blue-600 text-white">Deposit Funds</button>
+        <button id="btn-tab-withdraw" onclick="switchWalletTab('withdraw')" class="py-2 text-xs font-bold rounded-lg bg-gray-200 dark:bg-gray-800 opacity-70">Withdrawal</button>
+      </div>
+
+      <!-- DEPOSIT SECTION -->
+      <div id="wallet-deposit-sec" class="space-y-3">
+        <div class="bg-blue-50 dark:bg-slate-800 p-3 rounded-lg text-xs space-y-1">
+          <p><strong>Telebirr:</strong> <span class="text-blue-600 font-mono font-bold">0905158371</span></p>
+          <p><strong>Siinqee Bank:</strong> <span class="text-blue-600 font-mono font-bold">1036696630101</span></p>
+        </div>
+        <input type="number" id="deposit-amount" placeholder="Amount paid in ETB (e.g. 500)" class="w-full p-2.5 rounded-lg border bg-transparent text-xs">
+        <textarea id="deposit-receipt" rows="3" placeholder='Paste full SMS like: "Dear Wandu You have transferred ETB 500.00... Your transaction number is DJS2E0GHUU..."' class="w-full p-2.5 rounded-lg border bg-transparent text-xs font-mono"></textarea>
+        <button onclick="processDeposit()" class="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white font-semibold text-xs rounded-lg">Confirm & Add to Wallet</button>
+      </div>
+
+      <!-- WITHDRAWAL SECTION -->
+      <div id="wallet-withdraw-sec" class="hidden space-y-3">
+        <p class="text-xs opacity-70">Withdraw your wallet balance back to your Telebirr account.</p>
+        <input type="number" id="withdraw-amount" placeholder="Withdrawal Amount (Min: 100 ETB)" class="w-full p-2.5 rounded-lg border bg-transparent text-xs">
+        <input type="text" id="withdraw-telebirr" placeholder="Your Telebirr Phone Number (09...)" class="w-full p-2.5 rounded-lg border bg-transparent text-xs">
+        <button onclick="processWithdrawal()" class="w-full py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs rounded-lg">Submit Withdrawal Request</button>
+      </div>
+
+      <div id="wallet-msg" class="hidden p-2.5 rounded-lg text-xs font-medium"></div>
+
+      <button onclick="closeWalletModal()" class="w-full py-2 bg-gray-500 text-white text-xs font-semibold rounded-lg">Close</button>
+    </div>
+  </div>
+
   <!-- PAYMENT & RECEIPT MODAL -->
   <div id="payment-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
     <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 max-w-md w-full space-y-4 border border-gray-700 shadow-2xl max-h-[90vh] overflow-y-auto">
       <h3 class="text-lg font-bold">Complete Payment</h3>
       
-      <!-- Payment Method Selector -->
+      <!-- Option 1: Pay with Wallet Balance -->
+      <div class="p-3 bg-green-50 dark:bg-slate-800 rounded-xl border border-green-300 dark:border-green-800 flex justify-between items-center">
+        <div>
+          <span class="text-xs font-bold block">Pay using Wallet Balance</span>
+          <span id="checkout-wallet-bal" class="text-xs text-green-600 font-semibold">Available: 0.00 ETB</span>
+        </div>
+        <button onclick="payWithWallet()" class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded-lg">Use Wallet</button>
+      </div>
+
+      <div class="text-center text-xs opacity-50 font-bold">- OR DIRECT PAYMENT -</div>
+
+      <!-- Option 2: Telebirr / Siinqee Bank -->
       <div>
         <label class="text-xs font-semibold block mb-1">Select Payment Option:</label>
         <div class="grid grid-cols-2 gap-2">
@@ -62,26 +115,25 @@
 
       <!-- Account Info Display -->
       <div id="payment-account-info" class="bg-blue-50 dark:bg-slate-800 p-3 rounded-lg text-xs space-y-1 border border-blue-200 dark:border-blue-900">
-        <!-- Injected based on selection -->
+        <!-- Injected dynamically -->
       </div>
 
-      <!-- Receipt Text Area / Reference -->
+      <!-- Receipt Text Area -->
       <div class="space-y-2">
         <label class="text-xs font-semibold">Paste Full SMS Receipt or Transaction ID:</label>
-        <textarea id="txn-receipt-input" rows="4" placeholder='Paste full SMS like: "Dear Wandu You have transferred ETB 300.00... Your transaction number is DJS2E0GHUU..."' class="w-full p-2.5 rounded-lg border bg-transparent text-xs focus:ring-2 focus:ring-blue-500 font-mono"></textarea>
+        <textarea id="txn-receipt-input" rows="3" placeholder='Paste full SMS like: "Dear Wandu You have transferred ETB 300.00... Your transaction number is DJS2E0GHUU..."' class="w-full p-2.5 rounded-lg border bg-transparent text-xs font-mono"></textarea>
       </div>
 
-      <!-- Feedback Banner -->
       <div id="validation-msg" class="hidden p-2.5 rounded-lg text-xs font-medium"></div>
 
       <div class="flex gap-2 pt-2">
-        <button onclick="processReceiptAndSubmit()" class="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold text-sm transition-all">Verify & Claim Product</button>
-        <button onclick="closePaymentModal()" class="w-full py-2.5 bg-gray-500 hover:bg-gray-600 text-white rounded-lg font-semibold text-sm transition-all">Cancel</button>
+        <button onclick="processReceiptAndSubmit()" class="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold text-sm">Verify & Claim</button>
+        <button onclick="closePaymentModal()" class="w-full py-2.5 bg-gray-500 hover:bg-gray-600 text-white rounded-lg font-semibold text-sm">Cancel</button>
       </div>
     </div>
   </div>
 
-  <!-- CUSTOMER HISTORY, ACCOUNT & REFERRAL MODAL -->
+  <!-- CUSTOMER ACCOUNT & REFERRAL MODAL -->
   <div id="history-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
     <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 max-w-md w-full space-y-4 border border-gray-700 shadow-2xl max-h-[90vh] overflow-y-auto">
       <div class="flex justify-between items-center border-b pb-3 border-gray-200 dark:border-gray-800">
@@ -97,8 +149,8 @@
 
       <!-- Referral Section -->
       <div class="bg-blue-50 dark:bg-slate-800 p-3.5 rounded-xl border border-blue-200 dark:border-blue-900 space-y-2">
-        <h4 class="text-xs font-bold text-blue-800 dark:text-blue-300 uppercase tracking-wider">🎁 Referral Program</h4>
-        <p class="text-[11px] opacity-80">Share your referral link with friends. Earn rewards when they purchase books or datasets!</p>
+        <h4 class="text-xs font-bold text-blue-800 dark:text-blue-300 uppercase tracking-wider">🎁 Refer & Earn Rewards</h4>
+        <p class="text-[11px] opacity-80">Invite your friends! Earn bonus ETB added straight to your store wallet when they join.</p>
         <div class="flex gap-2">
           <input type="text" id="referral-link-input" readonly class="w-full p-1.5 text-xs rounded border bg-white dark:bg-slate-900 font-mono" />
           <button onclick="copyReferralLink()" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shrink-0">Copy</button>
@@ -109,7 +161,7 @@
       <div>
         <h4 class="text-xs font-bold uppercase tracking-wider opacity-70 mb-2">Purchase History</h4>
         <div id="history-list" class="space-y-2 text-xs">
-          <!-- History items injected here -->
+          <!-- Injected dynamically -->
         </div>
       </div>
 
@@ -121,9 +173,9 @@
   <div id="admin-view" class="hidden space-y-4">
     <div class="p-4 rounded-xl border border-purple-500 bg-purple-50/50 dark:bg-slate-900 shadow-sm">
       <h2 class="text-lg font-bold mb-2 text-purple-700 dark:text-purple-300">Admin Panel: Upload Product</h2>
-      <p class="text-xs opacity-70 mb-3">Logged in as authorized administrator: <strong>@WDemeke1</strong></p>
+      <p class="text-xs opacity-70 mb-3">Logged in as administrator: <strong>@WDemeke1</strong></p>
       <form id="upload-form" onsubmit="handleProductUpload(event)" class="space-y-3">
-        <input type="text" id="prod-title" placeholder="Product Title (e.g., Grade 12 Physics E-Book)" required class="w-full p-2 rounded border bg-transparent text-sm">
+        <input type="text" id="prod-title" placeholder="Product Title (e.g., Grade 12 Physics Book)" required class="w-full p-2 rounded border bg-transparent text-sm">
         
         <select id="prod-type" class="w-full p-2 rounded border bg-transparent text-sm">
           <option value="book">Book</option>
@@ -132,12 +184,10 @@
         </select>
         
         <input type="number" id="prod-price" placeholder="Price in ETB (e.g., 300)" required class="w-full p-2 rounded border bg-transparent text-sm">
-        
         <textarea id="prod-desc" placeholder="Product description..." required class="w-full p-2 rounded border bg-transparent text-sm"></textarea>
-        
         <input type="text" id="prod-link" placeholder="Download Link (Google Drive, Telegram link)" required class="w-full p-2 rounded border bg-transparent text-sm">
         
-        <button type="submit" class="w-full py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold text-sm transition-all">Publish Product</button>
+        <button type="submit" class="w-full py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold text-sm">Publish Product</button>
       </form>
     </div>
   </div>
@@ -147,19 +197,16 @@
     const tg = window.Telegram?.WebApp;
     if (tg) { tg.ready(); tg.expand(); }
 
-    // User Profile Information
+    // Profile & Admin Verification
     const userProfile = {
       username: tg?.initDataUnsafe?.user?.username ? '@' + tg.initDataUnsafe.user.username : '@Guest_User',
       firstName: tg?.initDataUnsafe?.user?.first_name || 'Valued Customer',
       id: tg?.initDataUnsafe?.user?.id || Math.floor(Math.random() * 1000000)
     };
 
-    // STRICT ADMIN VERIFICATION: Only @WDemeke1 is allowed as admin
     const ADMIN_USERNAME = "WDemeke1";
-    const cleanUsername = userProfile.username.replace('@', '').trim();
-    const isUserAdmin = cleanUsername.toLowerCase() === ADMIN_USERNAME.toLowerCase();
+    const isUserAdmin = userProfile.username.replace('@', '').trim().toLowerCase() === ADMIN_USERNAME.toLowerCase();
 
-    // Show Admin Panel Button ONLY if user is @WDemeke1
     if (isUserAdmin) {
       document.getElementById('toggle-view').classList.remove('hidden');
     }
@@ -169,7 +216,8 @@
     let selectedProduct = null;
     let currentCategory = 'all';
 
-    // In-memory Database / Local Storage State
+    // Local DB Persisted Storage
+    let walletBalance = parseFloat(localStorage.getItem('ethio_wallet_' + userProfile.id)) || 0.00;
     let products = JSON.parse(localStorage.getItem('ethio_products')) || [
       { id: 'p1', title: 'Ethio Tech Career Guide (E-Book)', type: 'book', price: 300, desc: 'Complete senior software engineer masterclass guide.', link: 'https://example.com/ebook-download.pdf' },
       { id: 'p2', title: 'UI/UX Mobile Design Kit', type: 'design', price: 450, desc: 'Figma templates & local payment components.', link: 'https://example.com/design-kit.zip' }
@@ -178,17 +226,20 @@
     let usedTxnNumbers = JSON.parse(localStorage.getItem('ethio_used_txns')) || [];
     let customerHistory = JSON.parse(localStorage.getItem('ethio_customer_history_' + userProfile.id)) || [];
 
-    // Payment Accounts
     const ACCOUNTS = {
-      telebirr: { number: '0905158371', owner: 'Ethio Digital Store' },
-      sinqee: { number: '1036696630101', owner: 'Ethio Digital Store' }
+      telebirr: { number: '0905158371' },
+      sinqee: { number: '1036696630101' }
     };
 
+    function updateWalletDisplay() {
+      document.getElementById('header-wallet-bal').innerText = `${walletBalance.toFixed(2)} ETB`;
+      document.getElementById('modal-wallet-bal').innerText = `${walletBalance.toFixed(2)} ETB`;
+      document.getElementById('checkout-wallet-bal').innerText = `Available: ${walletBalance.toFixed(2)} ETB`;
+      localStorage.setItem('ethio_wallet_' + userProfile.id, walletBalance.toString());
+    }
+
     function toggleAdminMode() {
-      if (!isUserAdmin) {
-        alert("Unauthorized access restricted to @WDemeke1.");
-        return;
-      }
+      if (!isUserAdmin) return alert("Unauthorized access.");
       isAdminView = !isAdminView;
       document.getElementById('shop-view').classList.toggle('hidden', isAdminView);
       document.getElementById('category-tabs').classList.toggle('hidden', isAdminView);
@@ -238,16 +289,133 @@
       });
     }
 
+    // Wallet Deposit & Withdrawal Modal
+    function openWalletModal() {
+      updateWalletDisplay();
+      switchWalletTab('deposit');
+      document.getElementById('wallet-modal').classList.remove('hidden');
+    }
+
+    function closeWalletModal() {
+      document.getElementById('wallet-modal').classList.add('hidden');
+    }
+
+    function switchWalletTab(tab) {
+      const depSec = document.getElementById('wallet-deposit-sec');
+      const withSec = document.getElementById('wallet-withdraw-sec');
+      const depBtn = document.getElementById('btn-tab-deposit');
+      const withBtn = document.getElementById('btn-tab-withdraw');
+
+      if (tab === 'deposit') {
+        depSec.classList.remove('hidden');
+        withSec.classList.add('hidden');
+        depBtn.className = "py-2 text-xs font-bold rounded-lg bg-blue-600 text-white";
+        withBtn.className = "py-2 text-xs font-bold rounded-lg bg-gray-200 dark:bg-gray-800 opacity-70";
+      } else {
+        withSec.classList.remove('hidden');
+        depSec.classList.add('hidden');
+        withBtn.className = "py-2 text-xs font-bold rounded-lg bg-purple-600 text-white";
+        depBtn.className = "py-2 text-xs font-bold rounded-lg bg-gray-200 dark:bg-gray-800 opacity-70";
+      }
+    }
+
+    function processDeposit() {
+      const amount = parseFloat(document.getElementById('deposit-amount').value);
+      const receipt = document.getElementById('deposit-receipt').value.trim();
+
+      if (!amount || amount <= 0 || !receipt) {
+        showWalletMsg("Please enter a valid deposit amount and paste your payment receipt.", "bg-red-100 text-red-800");
+        return;
+      }
+
+      const txnMatch = receipt.match(/(?:transaction number is|transaction number|txn|id)[:\s]*([A-Z0-9]{8,12})/i);
+      const txnId = txnMatch ? txnMatch[1].toUpperCase() : 'DEP_' + Date.now();
+
+      if (usedTxnNumbers.includes(txnId)) {
+        showWalletMsg(`Transaction ID ${txnId} has already been used!`, "bg-red-100 text-red-800");
+        return;
+      }
+
+      usedTxnNumbers.push(txnId);
+      localStorage.setItem('ethio_used_txns', JSON.stringify(usedTxnNumbers));
+
+      walletBalance += amount;
+      updateWalletDisplay();
+      showWalletMsg(`✅ Successfully deposited ${amount} ETB to your wallet!`, "bg-green-100 text-green-800");
+      document.getElementById('deposit-amount').value = '';
+      document.getElementById('deposit-receipt').value = '';
+    }
+
+    function processWithdrawal() {
+      const amount = parseFloat(document.getElementById('withdraw-amount').value);
+      const phone = document.getElementById('withdraw-telebirr').value.trim();
+
+      if (!amount || amount < 100) {
+        showWalletMsg("Minimum withdrawal amount is 100 ETB.", "bg-red-100 text-red-800");
+        return;
+      }
+
+      if (amount > walletBalance) {
+        showWalletMsg("Insufficient wallet balance.", "bg-red-100 text-red-800");
+        return;
+      }
+
+      if (!phone || phone.length < 10) {
+        showWalletMsg("Please provide a valid Telebirr phone number.", "bg-red-100 text-red-800");
+        return;
+      }
+
+      walletBalance -= amount;
+      updateWalletDisplay();
+      showWalletMsg(`✅ Withdrawal request of ${amount} ETB submitted to ${phone}. Processing shortly!`, "bg-green-100 text-green-800");
+      document.getElementById('withdraw-amount').value = '';
+      document.getElementById('withdraw-telebirr').value = '';
+    }
+
+    function showWalletMsg(msg, css) {
+      const el = document.getElementById('wallet-msg');
+      el.className = `p-2.5 rounded-lg text-xs font-medium ${css}`;
+      el.innerText = msg;
+      el.classList.remove('hidden');
+    }
+
+    // Payment Modal Functions
     function openPaymentModal(product) {
       selectedProduct = product;
       selectPaymentMethod('telebirr');
+      updateWalletDisplay();
       document.getElementById('txn-receipt-input').value = '';
-      hideValidationMsg();
+      document.getElementById('validation-msg').classList.add('hidden');
       document.getElementById('payment-modal').classList.remove('hidden');
     }
 
     function closePaymentModal() {
       document.getElementById('payment-modal').classList.add('hidden');
+    }
+
+    function payWithWallet() {
+      if (walletBalance < selectedProduct.price) {
+        alert(`Insufficient balance! You need ${selectedProduct.price} ETB but only have ${walletBalance.toFixed(2)} ETB in your wallet.`);
+        return;
+      }
+
+      walletBalance -= selectedProduct.price;
+      updateWalletDisplay();
+
+      const purchaseRecord = {
+        txnId: 'WAL_' + Date.now(),
+        productTitle: selectedProduct.title,
+        price: selectedProduct.price,
+        date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString(),
+        link: selectedProduct.link,
+        method: 'Wallet Balance'
+      };
+
+      customerHistory.push(purchaseRecord);
+      localStorage.setItem('ethio_customer_history_' + userProfile.id, JSON.stringify(customerHistory));
+
+      closePaymentModal();
+      alert(`🎉 Payment successful using wallet!\n\nProduct: "${selectedProduct.title}"\n📥 Download Link:\n${selectedProduct.link}`);
     }
 
     function selectPaymentMethod(method) {
@@ -262,18 +430,17 @@
         accInfo.innerHTML = `
           <p><strong>Method:</strong> Telebirr Transfer</p>
           <p><strong>Number:</strong> <span class="text-blue-600 font-mono font-bold text-sm">${ACCOUNTS.telebirr.number}</span></p>
-          <p><strong>Required Amount:</strong> <span class="font-bold text-green-600">${selectedProduct.price} ETB</span></p>`;
+          <p><strong>Price:</strong> <span class="font-bold text-green-600">${selectedProduct.price} ETB</span></p>`;
       } else {
-        sinqeeBtn.className = "p-2.5 rounded-lg border text-xs font-bold bg-blue-50 border-blue-600 text-blue-700 dark:bg-slate-800 dark:text-gray-300";
+        sinqeeBtn.className = "p-2.5 rounded-lg border text-xs font-bold bg-blue-50 border-blue-600 text-blue-700 dark:bg-slate-800 dark:text-blue-400";
         teleBtn.className = "p-2.5 rounded-lg border text-xs font-bold bg-gray-100 border-gray-300 text-gray-700 dark:bg-slate-800 dark:text-gray-300";
         accInfo.innerHTML = `
           <p><strong>Method:</strong> Siinqee Bank</p>
           <p><strong>Account:</strong> <span class="text-blue-600 font-mono font-bold text-sm">${ACCOUNTS.sinqee.number}</span></p>
-          <p><strong>Required Amount:</strong> <span class="font-bold text-green-600">${selectedProduct.price} ETB</span></p>`;
+          <p><strong>Price:</strong> <span class="font-bold text-green-600">${selectedProduct.price} ETB</span></p>`;
       }
     }
 
-    // Receipt Parser & Anti-Fraud Checker
     function processReceiptAndSubmit() {
       const rawInput = document.getElementById('txn-receipt-input').value.trim();
 
@@ -286,15 +453,10 @@
       const txnRegex = /(?:transaction number is|transaction number|txn|id)[:\s]*([A-Z0-9]{8,12})/i;
       const matchTxn = rawInput.match(txnRegex);
 
-      if (matchTxn && matchTxn[1]) {
-        txnNumber = matchTxn[1].toUpperCase();
-      } else {
-        const fallbackMatch = rawInput.match(/\b[A-Z0-9]{8,12}\b/);
-        txnNumber = fallbackMatch ? fallbackMatch[0].toUpperCase() : rawInput.toUpperCase();
-      }
+      txnNumber = matchTxn && matchTxn[1] ? matchTxn[1].toUpperCase() : rawInput.toUpperCase();
 
       if (usedTxnNumbers.includes(txnNumber)) {
-        showValidationMsg(`⚠️ Fraud Prevention: Transaction ID "${txnNumber}" has already been used! Receipt reuse is strictly forbidden.`, 'bg-red-100 text-red-800');
+        showValidationMsg(`⚠️ Transaction ID "${txnNumber}" has already been used! Re-use is forbidden.`, 'bg-red-100 text-red-800');
         return;
       }
 
@@ -328,19 +490,14 @@
       el.classList.remove('hidden');
     }
 
-    function hideValidationMsg() {
-      document.getElementById('validation-msg').classList.add('hidden');
-    }
-
-    // Customer Account, History & Referral Link Logic
+    // Customer Account & Referral Share
     function openHistoryModal() {
       document.getElementById('user-display-name').innerText = `${userProfile.firstName} (${userProfile.username})`;
       
       const totalSpent = customerHistory.reduce((sum, item) => sum + item.price, 0);
       document.getElementById('user-total-spent').innerText = `${totalSpent.toFixed(2)} ETB`;
 
-      // Generate Referral Link using user ID
-      const botUsername = "EthioDigitalStoreBot"; // Replace with your actual Telegram bot username
+      const botUsername = "EthioDigitalStoreBot";
       const referralLink = `https://t.me/${botUsername}?start=ref_${userProfile.id}`;
       document.getElementById('referral-link-input').value = referralLink;
 
@@ -376,14 +533,13 @@
     function copyReferralLink() {
       const input = document.getElementById('referral-link-input');
       input.select();
-      input.setSelectionRange(0, 99999);
       navigator.clipboard.writeText(input.value);
-      alert("📋 Referral link copied to clipboard! Share it with your friends.");
+      alert("📋 Referral link copied to clipboard!");
     }
 
     function shareReferralTelegram() {
       const link = document.getElementById('referral-link-input').value;
-      const text = encodeURIComponent("Check out Ethio Digital Store for amazing books, datasets, and design kits! Join here:");
+      const text = encodeURIComponent("Check out Ethio Digital Store for books, datasets, and design assets! Join here:");
       const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${text}`;
       if (tg && tg.openTelegramLink) {
         tg.openTelegramLink(shareUrl);
@@ -392,13 +548,10 @@
       }
     }
 
-    // Admin Upload Product Logic
+    // Admin Upload
     function handleProductUpload(e) {
       e.preventDefault();
-      if (!isUserAdmin) {
-        alert("Action forbidden. Unauthorized.");
-        return;
-      }
+      if (!isUserAdmin) return alert("Action forbidden.");
 
       const newProduct = {
         id: 'p_' + Date.now(),
@@ -412,13 +565,14 @@
       products.push(newProduct);
       localStorage.setItem('ethio_products', JSON.stringify(products));
 
-      alert('Product published successfully to Ethio Digital Store!');
+      alert('Product published successfully!');
       document.getElementById('upload-form').reset();
       toggleAdminMode();
       renderShop();
     }
 
-    // Initial Render
+    // Init
+    updateWalletDisplay();
     renderShop();
   </script>
 </body>
