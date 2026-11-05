@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Habesha Digital Store</title>
+  <title>Ethio Digital Store</title>
   <!-- Telegram Web App SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <!-- Tailwind CSS -->
@@ -17,11 +17,13 @@
   <!-- Header -->
   <header class="mb-6 flex justify-between items-center">
     <div>
-      <h1 class="text-2xl font-bold">Habesha Digital Store</h1>
+      <h1 class="text-2xl font-bold">Ethio Digital Store</h1>
       <p class="text-sm opacity-70">Books, Datasets & Design Assets</p>
     </div>
-    <!-- Quick Admin Mode Toggle Button -->
-    <button id="toggle-view" onclick="toggleAdminMode()" class="text-xs px-3 py-1 bg-gray-200 dark:bg-gray-800 rounded-lg font-medium">Admin Mode</button>
+    <div class="flex gap-2">
+      <button onclick="openHistoryModal()" class="text-xs px-3 py-1.5 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded-lg font-semibold">My Account</button>
+      <button id="toggle-view" onclick="toggleAdminMode()" class="text-xs px-3 py-1.5 bg-gray-200 dark:bg-gray-800 rounded-lg font-semibold">Admin Panel</button>
+    </div>
   </header>
 
   <!-- CATEGORY TABS -->
@@ -39,38 +41,76 @@
     </div>
   </div>
 
-  <!-- PAYMENT MODAL -->
+  <!-- PAYMENT & RECEIPT MODAL -->
   <div id="payment-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-    <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 max-w-sm w-full space-y-4 border border-gray-700 shadow-2xl">
-      <h3 class="text-lg font-bold">Complete Local Payment</h3>
-      <p class="text-xs opacity-80" id="pay-instruction">Transfer the exact amount to one of the accounts below:</p>
+    <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 max-w-md w-full space-y-4 border border-gray-700 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <h3 class="text-lg font-bold">Complete Payment</h3>
       
-      <div class="bg-gray-100 dark:bg-slate-800 p-3 rounded-lg text-xs space-y-2">
-        <p><strong>Telebirr:</strong> <span class="text-blue-500 font-mono font-bold">0905158371</span></p>
-        <p><strong>Siinqee Bank:</strong> <span class="text-blue-500 font-mono font-bold">1036696630101</span></p>
+      <!-- Payment Method Selector -->
+      <div>
+        <label class="text-xs font-semibold block mb-1">Select Payment Option:</label>
+        <div class="grid grid-cols-2 gap-2">
+          <button type="button" id="btn-telebirr" onclick="selectPaymentMethod('telebirr')" class="p-2.5 rounded-lg border text-xs font-bold bg-blue-50 border-blue-600 text-blue-700 dark:bg-slate-800 dark:text-blue-400">
+            Telebirr
+          </button>
+          <button type="button" id="btn-sinqee" onclick="selectPaymentMethod('sinqee')" class="p-2.5 rounded-lg border text-xs font-bold bg-gray-100 border-gray-300 text-gray-700 dark:bg-slate-800 dark:text-gray-300">
+            Siinqee Bank
+          </button>
+        </div>
       </div>
 
-      <div class="space-y-2">
-        <label class="text-xs font-semibold">Your Telegram @username or Phone:</label>
-        <input type="text" id="buyer-contact" placeholder="@username" class="w-full p-2 rounded border bg-transparent text-sm">
-        
-        <label class="text-xs font-semibold">Transaction Reference / Receipt ID:</label>
-        <input type="text" id="txn-ref" placeholder="e.g., Telebirr SMS Code / Ref" class="w-full p-2 rounded border bg-transparent text-sm">
+      <!-- Account Info Display -->
+      <div id="payment-account-info" class="bg-blue-50 dark:bg-slate-800 p-3 rounded-lg text-xs space-y-1 border border-blue-200 dark:border-blue-900">
+        <!-- Injected based on selected payment method -->
       </div>
+
+      <!-- Receipt Text Area / Reference -->
+      <div class="space-y-2">
+        <label class="text-xs font-semibold">Paste Full SMS Receipt or Transaction ID:</label>
+        <textarea id="txn-receipt-input" rows="4" placeholder='Paste full SMS like: "Dear Wandu You have transferred ETB 300.00... Your transaction number is DJS2E0GHUU..."' class="w-full p-2.5 rounded-lg border bg-transparent text-xs focus:ring-2 focus:ring-blue-500 font-mono"></textarea>
+      </div>
+
+      <!-- Feedback / Verification Banner -->
+      <div id="validation-msg" class="hidden p-2.5 rounded-lg text-xs font-medium"></div>
 
       <div class="flex gap-2 pt-2">
-        <button onclick="submitOrder()" class="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold text-sm transition-all">Submit Receipt</button>
-        <button onclick="closePaymentModal()" class="w-full py-2 bg-gray-400 hover:bg-gray-500 text-white rounded-lg font-semibold text-sm transition-all">Cancel</button>
+        <button onclick="processReceiptAndSubmit()" class="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold text-sm transition-all">Verify & Claim Product</button>
+        <button onclick="closePaymentModal()" class="w-full py-2.5 bg-gray-500 hover:bg-gray-600 text-white rounded-lg font-semibold text-sm transition-all">Cancel</button>
       </div>
     </div>
   </div>
 
-  <!-- ADMIN UPLOAD VIEW (Hidden by default, unlocked with ?admin=true) -->
+  <!-- CUSTOMER HISTORY & ACCOUNT MODAL -->
+  <div id="history-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+    <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 max-w-md w-full space-y-4 border border-gray-700 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b pb-3 border-gray-200 dark:border-gray-800">
+        <div>
+          <h3 class="text-lg font-bold">Customer Account</h3>
+          <p id="user-display-name" class="text-xs opacity-70">User ID: Guest</p>
+        </div>
+        <div class="text-right">
+          <span class="text-xs opacity-70 block">Total Spent</span>
+          <span id="user-total-spent" class="font-bold text-green-600 text-sm">0.00 ETB</span>
+        </div>
+      </div>
+
+      <div>
+        <h4 class="text-xs font-bold uppercase tracking-wider opacity-70 mb-2">Purchase History</h4>
+        <div id="history-list" class="space-y-2 text-xs">
+          <!-- History items injected here -->
+        </div>
+      </div>
+
+      <button onclick="closeHistoryModal()" class="w-full py-2 bg-gray-500 text-white rounded-lg font-semibold text-sm">Close</button>
+    </div>
+  </div>
+
+  <!-- ADMIN UPLOAD VIEW -->
   <div id="admin-view" class="hidden space-y-4">
     <div class="p-4 rounded-xl border border-blue-500 bg-blue-50/50 dark:bg-slate-900 shadow-sm">
-      <h2 class="text-lg font-bold mb-2">Upload New Digital Product</h2>
+      <h2 class="text-lg font-bold mb-2">Admin: Upload Digital Product</h2>
       <form id="upload-form" onsubmit="handleProductUpload(event)" class="space-y-3">
-        <input type="text" id="prod-title" placeholder="Product Title (e.g. Grade 12 Math Book)" required class="w-full p-2 rounded border bg-transparent text-sm">
+        <input type="text" id="prod-title" placeholder="Product Title (e.g., Grade 12 Physics E-Book)" required class="w-full p-2 rounded border bg-transparent text-sm">
         
         <select id="prod-type" class="w-full p-2 rounded border bg-transparent text-sm">
           <option value="book">Book</option>
@@ -78,35 +118,55 @@
           <option value="design">Design Asset</option>
         </select>
         
-        <input type="number" id="prod-price" placeholder="Price in ETB (e.g. 250)" required class="w-full p-2 rounded border bg-transparent text-sm">
+        <input type="number" id="prod-price" placeholder="Price in ETB (e.g., 300)" required class="w-full p-2 rounded border bg-transparent text-sm">
         
-        <textarea id="prod-desc" placeholder="Short description of your product..." required class="w-full p-2 rounded border bg-transparent text-sm"></textarea>
+        <textarea id="prod-desc" placeholder="Product details / description..." required class="w-full p-2 rounded border bg-transparent text-sm"></textarea>
         
-        <input type="text" id="prod-link" placeholder="Download Link (Google Drive, Telegram File link)" required class="w-full p-2 rounded border bg-transparent text-sm">
+        <input type="text" id="prod-link" placeholder="Secure Download Link (Google Drive, Telegram Channel link)" required class="w-full p-2 rounded border bg-transparent text-sm">
         
-        <button type="submit" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-sm transition-all">Publish Product</button>
+        <button type="submit" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-sm transition-all">Publish to Store</button>
       </form>
     </div>
   </div>
 
-  <!-- FRONTEND SCRIPT -->
+  <!-- SCRIPT LOGIC -->
   <script>
     const tg = window.Telegram?.WebApp;
     if (tg) { tg.ready(); tg.expand(); }
 
+    // User Profile Information
+    const userProfile = {
+      username: tg?.initDataUnsafe?.user?.username ? '@' + tg.initDataUnsafe.user.username : 'Guest_User',
+      firstName: tg?.initDataUnsafe?.user?.first_name || 'Valued Customer',
+      id: tg?.initDataUnsafe?.user?.id || 'ID_' + Math.floor(Math.random() * 1000000)
+    };
+
     let isAdmin = window.location.search.includes('admin=true');
-    let products = [
-      { id: 'p1', title: 'Ethio Tech Career Guide (E-Book)', type: 'book', price: 300, desc: 'Complete local software engineering & career guide.', link: 'https://example.com/sample.pdf' }
-    ];
+    let selectedPaymentMethod = 'telebirr';
     let selectedProduct = null;
     let currentCategory = 'all';
+
+    // In-memory Database / Local Storage Persisted State
+    let products = JSON.parse(localStorage.getItem('ethio_products')) || [
+      { id: 'p1', title: 'Ethio Tech Career Guide (E-Book)', type: 'book', price: 300, desc: 'Complete senior software engineer masterclass guide.', link: 'https://example.com/ebook-download.pdf' },
+      { id: 'p2', title: 'UI/UX Mobile Design Kit', type: 'design', price: 450, desc: 'Figma templates & local payment components.', link: 'https://example.com/design-kit.zip' }
+    ];
+
+    let usedTxnNumbers = JSON.parse(localStorage.getItem('ethio_used_txns')) || [];
+    let customerHistory = JSON.parse(localStorage.getItem('ethio_customer_history_' + userProfile.id)) || [];
+
+    // Payment Accounts
+    const ACCOUNTS = {
+      telebirr: { name: 'Telebirr Account', number: '0905158371', owner: 'Ethio Digital Store' },
+      sinqee: { name: 'Siinqee Bank Account', number: '1036696630101', owner: 'Ethio Digital Store' }
+    };
 
     function toggleAdminMode() {
       isAdmin = !isAdmin;
       document.getElementById('shop-view').classList.toggle('hidden', isAdmin);
       document.getElementById('category-tabs').classList.toggle('hidden', isAdmin);
       document.getElementById('admin-view').classList.toggle('hidden', !isAdmin);
-      document.getElementById('toggle-view').innerText = isAdmin ? 'Customer View' : 'Admin Mode';
+      document.getElementById('toggle-view').innerText = isAdmin ? 'Customer View' : 'Admin Panel';
     }
 
     function filterCategory(cat) {
@@ -129,7 +189,7 @@
         : products.filter(p => p.type === currentCategory);
 
       if (filtered.length === 0) {
-        grid.innerHTML = '<p class="text-sm opacity-50 text-center py-12">No products available in this category yet.</p>';
+        grid.innerHTML = '<p class="text-sm opacity-50 text-center py-12">No products available in this section yet.</p>';
         return;
       }
 
@@ -153,7 +213,9 @@
 
     function openPaymentModal(product) {
       selectedProduct = product;
-      document.getElementById('pay-instruction').innerText = `Transfer ${product.price} ETB for "${product.title}" using Telebirr (0905158371) or Siinqee Bank (1036696630101):`;
+      selectPaymentMethod('telebirr');
+      document.getElementById('txn-receipt-input').value = '';
+      hideValidationMsg();
       document.getElementById('payment-modal').classList.remove('hidden');
     }
 
@@ -161,22 +223,139 @@
       document.getElementById('payment-modal').classList.add('hidden');
     }
 
-    function submitOrder() {
-      const contact = document.getElementById('buyer-contact').value;
-      const txnRef = document.getElementById('txn-ref').value;
+    function selectPaymentMethod(method) {
+      selectedPaymentMethod = method;
+      const teleBtn = document.getElementById('btn-telebirr');
+      const sinqeeBtn = document.getElementById('btn-sinqee');
+      const accInfo = document.getElementById('payment-account-info');
 
-      if (!contact || !txnRef) {
-        alert('Please fill in your contact information and transaction reference code.');
+      if (method === 'telebirr') {
+        teleBtn.className = "p-2.5 rounded-lg border text-xs font-bold bg-blue-50 border-blue-600 text-blue-700 dark:bg-slate-800 dark:text-blue-400";
+        sinqeeBtn.className = "p-2.5 rounded-lg border text-xs font-bold bg-gray-100 border-gray-300 text-gray-700 dark:bg-slate-800 dark:text-gray-300";
+        accInfo.innerHTML = `
+          <p><strong>Method:</strong> Telebirr Transfer</p>
+          <p><strong>Number:</strong> <span class="text-blue-600 font-mono font-bold text-sm">${ACCOUNTS.telebirr.number}</span></p>
+          <p><strong>Required Amount:</strong> <span class="font-bold text-green-600">${selectedProduct.price} ETB</span></p>`;
+      } else {
+        sinqeeBtn.className = "p-2.5 rounded-lg border text-xs font-bold bg-blue-50 border-blue-600 text-blue-700 dark:bg-slate-800 dark:text-blue-400";
+        teleBtn.className = "p-2.5 rounded-lg border text-xs font-bold bg-gray-100 border-gray-300 text-gray-700 dark:bg-slate-800 dark:text-gray-300";
+        accInfo.innerHTML = `
+          <p><strong>Method:</strong> Siinqee Bank</p>
+          <p><strong>Account:</strong> <span class="text-blue-600 font-mono font-bold text-sm">${ACCOUNTS.sinqee.number}</span></p>
+          <p><strong>Required Amount:</strong> <span class="font-bold text-green-600">${selectedProduct.price} ETB</span></p>`;
+      }
+    }
+
+    // Receipt Parser & Anti-Fraud Checker
+    function processReceiptAndSubmit() {
+      const rawInput = document.getElementById('txn-receipt-input').value.trim();
+
+      if (!rawInput) {
+        showValidationMsg('Please paste your full Telebirr SMS or transaction reference number.', 'bg-red-100 text-red-800');
         return;
       }
 
-      // If connected to backend API, send order data here. 
-      // For standalone client view, triggers confirmation alert:
-      alert(`Payment submission received for "${selectedProduct.title}"!\n\nWe are verifying your transfer to Telebirr/Siinqee. Your download link will be sent to ${contact} shortly.`);
-      closePaymentModal();
-      if (tg) tg.close();
+      let txnNumber = '';
+      let amountFound = 0;
+
+      // Extract transaction ID using regex (e.g. "transaction number is DJS2E0GHUU" or standalone ID)
+      const txnRegex = /(?:transaction number is|transaction number|txn|id)[:\s]*([A-Z0-9]{8,12})/i;
+      const matchTxn = rawInput.match(txnRegex);
+
+      if (matchTxn && matchTxn[1]) {
+        txnNumber = matchTxn[1].toUpperCase();
+      } else {
+        // Fallback: extract any isolated 8-12 uppercase alphanumeric string
+        const fallbackMatch = rawInput.match(/\b[A-Z0-9]{8,12}\b/);
+        txnNumber = fallbackMatch ? fallbackMatch[0].toUpperCase() : rawInput.toUpperCase();
+      }
+
+      // Check if transaction number was already used
+      if (usedTxnNumbers.includes(txnNumber)) {
+        showValidationMsg(`⚠️ Fraud Prevention: Transaction ID "${txnNumber}" has already been used! Receipt reuse is strictly forbidden.`, 'bg-red-100 text-red-800');
+        return;
+      }
+
+      // Extract Amount paid if full SMS was pasted
+      const amountRegex = /(?:ETB|BIRR)\s*([\d,]+\.?\d*)/i;
+      const matchAmount = rawInput.match(amountRegex);
+      if (matchAmount && matchAmount[1]) {
+        amountFound = parseFloat(matchAmount[1].replace(',', ''));
+      }
+
+      // Record transaction number to block duplicate re-use
+      usedTxnNumbers.push(txnNumber);
+      localStorage.setItem('ethio_used_txns', JSON.stringify(usedTxnNumbers));
+
+      // Record in Customer History
+      const purchaseRecord = {
+        txnId: txnNumber,
+        productTitle: selectedProduct.title,
+        price: selectedProduct.price,
+        date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString(),
+        link: selectedProduct.link,
+        method: selectedPaymentMethod
+      };
+
+      customerHistory.push(purchaseRecord);
+      localStorage.setItem('ethio_customer_history_' + userProfile.id, JSON.stringify(customerHistory));
+
+      showValidationMsg(`✅ Payment Verified! Txn ID: ${txnNumber}. Opening your download link...`, 'bg-green-100 text-green-800');
+
+      setTimeout(() => {
+        closePaymentModal();
+        alert(`🎉 Thank you ${userProfile.firstName}!\n\nYour purchase of "${selectedProduct.title}" is confirmed.\n\n📥 Download Link:\n${selectedProduct.link}`);
+      }, 1500);
     }
 
+    function showValidationMsg(msg, cssClass) {
+      const el = document.getElementById('validation-msg');
+      el.className = `p-2.5 rounded-lg text-xs font-medium ${cssClass}`;
+      el.innerText = msg;
+      el.classList.remove('hidden');
+    }
+
+    function hideValidationMsg() {
+      document.getElementById('validation-msg').classList.add('hidden');
+    }
+
+    // Customer Account & History Modal Logic
+    function openHistoryModal() {
+      document.getElementById('user-display-name').innerText = `${userProfile.firstName} (${userProfile.username})`;
+      
+      const totalSpent = customerHistory.reduce((sum, item) => sum + item.price, 0);
+      document.getElementById('user-total-spent').innerText = `${totalSpent.toFixed(2)} ETB`;
+
+      const listEl = document.getElementById('history-list');
+      listEl.innerHTML = '';
+
+      if (customerHistory.length === 0) {
+        listEl.innerHTML = '<p class="opacity-50 text-center py-4">No purchases yet.</p>';
+      } else {
+        customerHistory.forEach(item => {
+          listEl.innerHTML += `
+            <div class="p-3 border rounded-lg dark:border-gray-800 space-y-1">
+              <div class="flex justify-between font-semibold">
+                <span>${item.productTitle}</span>
+                <span class="text-green-600">${item.price} ETB</span>
+              </div>
+              <div class="flex justify-between opacity-70 text-[10px]">
+                <span>Txn: ${item.txnId} (${item.method})</span>
+                <span>${item.date}</span>
+              </div>
+              <a href="${item.link}" target="_blank" class="text-blue-500 font-bold block pt-1 text-[11px]">📥 Re-download File</a>
+            </div>`;
+        });
+      }
+
+      document.getElementById('history-modal').classList.remove('hidden');
+    }
+
+    function closeHistoryModal() {
+      document.getElementById('history-modal').classList.add('hidden');
+    }
+
+    // Admin Upload Product Logic
     function handleProductUpload(e) {
       e.preventDefault();
       const newProduct = {
@@ -189,13 +368,15 @@
       };
 
       products.push(newProduct);
-      alert('Product published successfully to your store!');
+      localStorage.setItem('ethio_products', JSON.stringify(products));
+
+      alert('Product published successfully to Ethio Digital Store!');
       document.getElementById('upload-form').reset();
       toggleAdminMode();
       renderShop();
     }
 
-    // Initial render
+    // Initial Render
     renderShop();
     if (isAdmin) toggleAdminMode();
   </script>
