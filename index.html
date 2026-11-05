@@ -71,7 +71,7 @@
 
       <!-- WITHDRAWAL SECTION -->
       <div id="wallet-withdraw-sec" class="hidden space-y-3">
-        <p class="text-xs opacity-70">Withdraw your wallet balance back to your Telebirr account.</p>
+        <p class="text-xs opacity-70">Withdrawal requests are posted directly to channel <strong>@withdralaprove</strong>.</p>
         <input type="number" id="withdraw-amount" placeholder="Withdrawal Amount (Min: 100 ETB)" class="w-full p-2.5 rounded-lg border bg-transparent text-xs">
         <input type="text" id="withdraw-telebirr" placeholder="Your Telebirr Phone Number (09...)" class="w-full p-2.5 rounded-lg border bg-transparent text-xs">
         <button onclick="processWithdrawal()" class="w-full py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs rounded-lg">Submit Withdrawal Request</button>
@@ -139,6 +139,15 @@
         </div>
       </div>
 
+      <!-- Customer Phone Number Setup -->
+      <div class="bg-gray-50 dark:bg-slate-800 p-3 rounded-xl border border-gray-200 dark:border-gray-700 space-y-2">
+        <label class="text-xs font-bold block">Contact Phone Number (For Store Admin):</label>
+        <div class="flex gap-2">
+          <input type="tel" id="user-phone-input" placeholder="09..." class="w-full p-1.5 text-xs rounded border bg-white dark:bg-slate-900 font-mono" />
+          <button onclick="saveUserPhone()" class="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded-lg shrink-0">Save</button>
+        </div>
+      </div>
+
       <!-- Referral Section -->
       <div class="bg-blue-50 dark:bg-slate-800 p-3.5 rounded-xl border border-blue-200 dark:border-blue-900 space-y-2">
         <h4 class="text-xs font-bold text-blue-800 dark:text-blue-300 uppercase tracking-wider">🎁 Refer & Earn Rewards</h4>
@@ -170,7 +179,7 @@
         <span class="px-2.5 py-1 bg-purple-200 text-purple-900 dark:bg-purple-900 dark:text-purple-100 rounded-full text-xs font-bold">Protected</span>
       </div>
 
-      <!-- Admin Tabs: Upload Product vs Customer Activity Log -->
+      <!-- Admin Tabs -->
       <div class="flex gap-2 border-b border-purple-200 dark:border-purple-800 pb-3 mb-4">
         <button id="tab-admin-upload" onclick="switchAdminSubTab('upload')" class="px-3 py-1.5 text-xs font-bold bg-purple-600 text-white rounded-lg">Upload Product</button>
         <button id="tab-admin-customers" onclick="switchAdminSubTab('customers')" class="px-3 py-1.5 text-xs font-bold bg-gray-200 dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-lg">Customer Activity & Members</button>
@@ -195,16 +204,14 @@
         </form>
       </div>
 
-      <!-- SUB-TAB 2: CUSTOMER ACTIVITY & MEMBER LIST (EXCLUSIVE TO @WDemeke1) -->
+      <!-- SUB-TAB 2: CUSTOMER ACTIVITY & MEMBER LIST WITH PHONE & WITHDRAWALS -->
       <div id="admin-sub-customers" class="hidden space-y-4">
         <div class="flex justify-between items-center">
-          <h3 class="text-sm font-bold uppercase tracking-wider">Registered App Members & Purchases</h3>
+          <h3 class="text-sm font-bold uppercase tracking-wider">Registered App Members, Phone Numbers & Activity</h3>
           <span id="admin-total-members" class="text-xs font-bold bg-purple-200 text-purple-900 px-2 py-0.5 rounded">0 Members</span>
         </div>
         
-        <div id="admin-customer-list" class="space-y-3 text-xs">
-          <!-- Injected dynamically for @WDemeke1 -->
-        </div>
+        <div id="admin-customer-list" class="space-y-3 text-xs"></div>
       </div>
     </div>
   </div>
@@ -214,14 +221,12 @@
     const tg = window.Telegram?.WebApp;
     if (tg) { tg.ready(); tg.expand(); }
 
-    // User Profile Information
     const userProfile = {
       username: tg?.initDataUnsafe?.user?.username ? '@' + tg.initDataUnsafe.user.username : '@Guest_User',
       firstName: tg?.initDataUnsafe?.user?.first_name || 'Valued Customer',
       id: tg?.initDataUnsafe?.user?.id || Math.floor(Math.random() * 1000000)
     };
 
-    // STRICT SINGLE-ADMIN SECURITY LOCK: Only @WDemeke1 can access Admin
     const ADMIN_USERNAME = "WDemeke1";
     const isUserAdmin = userProfile.username.replace('@', '').trim().toLowerCase() === ADMIN_USERNAME.toLowerCase();
 
@@ -234,7 +239,7 @@
     let selectedProduct = null;
     let currentCategory = 'all';
 
-    // Local Storage Database Simulation
+    let userPhone = localStorage.getItem('ethio_phone_' + userProfile.id) || '';
     let walletBalance = parseFloat(localStorage.getItem('ethio_wallet_' + userProfile.id)) || 0.00;
     let products = JSON.parse(localStorage.getItem('ethio_products')) || [
       { id: 'p1', title: 'Ethio Tech Career Guide (E-Book)', type: 'book', price: 300, desc: 'Complete senior software engineer masterclass guide.', link: 'https://example.com/ebook-download.pdf' },
@@ -243,20 +248,29 @@
 
     let usedTxnNumbers = JSON.parse(localStorage.getItem('ethio_used_txns')) || [];
     let customerHistory = JSON.parse(localStorage.getItem('ethio_customer_history_' + userProfile.id)) || [];
-
-    // Global Member Directory (Tracks all app users for @WDemeke1)
+    let customerWithdrawals = JSON.parse(localStorage.getItem('ethio_customer_withdrawals_' + userProfile.id)) || [];
     let globalMemberRegistry = JSON.parse(localStorage.getItem('ethio_global_members')) || [];
 
-    // Register Current User to Global Registry
+    function saveUserPhone() {
+      const input = document.getElementById('user-phone-input').value.trim();
+      if (!input) return alert("Please enter a valid phone number.");
+      userPhone = input;
+      localStorage.setItem('ethio_phone_' + userProfile.id, userPhone);
+      registerMember();
+      alert("✅ Phone number saved!");
+    }
+
     function registerMember() {
       let existingIndex = globalMemberRegistry.findIndex(m => m.id === userProfile.id);
       const memberData = {
         id: userProfile.id,
         name: userProfile.firstName,
         username: userProfile.username,
+        phone: userPhone,
         wallet: walletBalance,
         totalSpent: customerHistory.reduce((sum, item) => sum + item.price, 0),
         history: customerHistory,
+        withdrawals: customerWithdrawals,
         lastActive: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString()
       };
 
@@ -314,7 +328,6 @@
       }
     }
 
-    // Render Members & Customer Activity for @WDemeke1 ONLY
     function renderAdminCustomerList() {
       if (!isUserAdmin) return;
       const listContainer = document.getElementById('admin-customer-list');
@@ -331,36 +344,71 @@
         if (m.history && m.history.length > 0) {
           m.history.forEach(h => {
             historyHtml += `
-              <div class="p-2 bg-gray-50 dark:bg-slate-800 rounded border border-gray-200 dark:border-gray-700 mt-1">
-                <div class="flex justify-between font-medium">
-                  <span>${h.productTitle}</span>
+              <div class="p-2.5 bg-gray-50 dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-gray-700 mt-1 space-y-1">
+                <div class="flex justify-between font-bold text-blue-600 dark:text-blue-400">
+                  <span>🛍️ Product: ${h.productTitle}</span>
                   <span class="text-green-600">${h.price} ETB</span>
                 </div>
-                <div class="flex justify-between text-[10px] opacity-70">
-                  <span>Txn ID: ${h.txnId}</span>
-                  <span>${h.date}</span>
+                <div class="text-[11px] opacity-90 font-mono bg-white dark:bg-slate-900 p-1.5 rounded border border-gray-100 dark:border-gray-800">
+                  Receipt / Txn Ref: <strong class="text-purple-600 dark:text-purple-400">${h.txnId}</strong> (${h.method})
+                </div>
+                <div class="text-[10px] opacity-60 text-right">
+                  Purchased on: ${h.date}
                 </div>
               </div>`;
           });
         } else {
-          historyHtml = '<p class="text-[10px] opacity-40 italic">No purchase history yet.</p>';
+          historyHtml = '<p class="text-[10px] opacity-40 italic">No purchases yet.</p>';
         }
 
+        let withdrawHtml = '';
+        if (m.withdrawals && m.withdrawals.length > 0) {
+          m.withdrawals.forEach(w => {
+            withdrawHtml += `
+              <div class="p-2.5 bg-purple-50 dark:bg-slate-800 rounded-lg border border-purple-200 dark:border-purple-800 mt-1 space-y-1">
+                <div class="flex justify-between font-bold text-purple-700 dark:text-purple-300">
+                  <span>💸 Requested: ${w.amount} ETB</span>
+                  <span class="text-xs bg-purple-200 dark:bg-purple-900 px-1.5 py-0.5 rounded text-purple-900 dark:text-purple-100">${w.status}</span>
+                </div>
+                <div class="text-[11px] font-mono">
+                  Target Telebirr: <strong class="text-blue-600">${w.telebirrPhone}</strong>
+                </div>
+                <div class="text-[10px] opacity-60 text-right">Requested on: ${w.date}</div>
+              </div>`;
+          });
+        } else {
+          withdrawHtml = '<p class="text-[10px] opacity-40 italic">No withdrawal requests.</p>';
+        }
+
+        const phoneDisplay = m.phone 
+          ? `<a href="tel:${m.phone}" class="px-2 py-1 bg-green-600 text-white rounded text-[11px] font-bold">📞 Call ${m.phone}</a>` 
+          : `<span class="text-[10px] opacity-50 italic">No Phone Provided</span>`;
+
         listContainer.innerHTML += `
-          <div class="p-3 border border-purple-200 dark:border-purple-900 bg-white dark:bg-slate-900 rounded-xl space-y-2">
+          <div class="p-3.5 border border-purple-200 dark:border-purple-900 bg-white dark:bg-slate-900 rounded-xl space-y-3 shadow-sm">
             <div class="flex justify-between items-start border-b pb-2 dark:border-gray-800">
               <div>
                 <span class="font-bold text-sm text-purple-700 dark:text-purple-300">${m.name}</span>
                 <span class="text-xs opacity-70 block">${m.username} (ID: ${m.id})</span>
+                <div class="mt-1 flex gap-2 items-center flex-wrap">
+                  ${phoneDisplay}
+                  <a href="https://t.me/${m.username.replace('@','')}" target="_blank" class="px-2 py-1 bg-blue-500 text-white rounded text-[11px] font-bold">💬 Chat Telegram</a>
+                </div>
               </div>
               <div class="text-right">
                 <span class="text-xs text-green-600 font-bold block">Wallet: ${m.wallet.toFixed(2)} ETB</span>
                 <span class="text-[10px] opacity-60">Total Spent: ${m.totalSpent.toFixed(2)} ETB</span>
               </div>
             </div>
+
             <div>
-              <span class="text-[10px] font-bold uppercase tracking-wider text-gray-500">Customer Purchases:</span>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-gray-500">Purchased Items & Receipt References:</span>
               ${historyHtml}
+            </div>
+
+            <div>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">Withdrawal Requests (@withdralaprove):</span>
+              ${withdrawHtml}
             </div>
           </div>`;
       });
@@ -464,7 +512,7 @@
       document.getElementById('deposit-receipt').value = '';
     }
 
-    function processWithdrawal() {
+    async function processWithdrawal() {
       const amount = parseFloat(document.getElementById('withdraw-amount').value);
       const phone = document.getElementById('withdraw-telebirr').value.trim();
 
@@ -485,7 +533,47 @@
 
       walletBalance -= amount;
       updateWalletDisplay();
-      showWalletMsg(`✅ Withdrawal request of ${amount} ETB submitted to ${phone}. Processing shortly!`, "bg-green-100 text-green-800");
+
+      const withdrawalRecord = {
+        amount: amount,
+        telebirrPhone: phone,
+        date: new Date().toLocaleString(),
+        status: 'Sent to @withdralaprove'
+      };
+
+      customerWithdrawals.push(withdrawalRecord);
+      localStorage.setItem('ethio_customer_withdrawals_' + userProfile.id, JSON.stringify(customerWithdrawals));
+
+      registerMember();
+
+      const withdrawalPayload = {
+        action: 'withdrawal_request',
+        user: userProfile.username,
+        name: userProfile.firstName,
+        userId: userProfile.id,
+        amount: amount,
+        telebirrPhone: phone,
+        date: withdrawalRecord.date
+      };
+
+      try {
+        const response = await fetch('/api/withdraw', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(withdrawalPayload)
+        });
+
+        if (response.ok) {
+          showWalletMsg(`✅ Withdrawal request of ${amount} ETB submitted to @withdralaprove!`, "bg-green-100 text-green-800");
+        } else {
+          if (tg && tg.sendData) tg.sendData(JSON.stringify(withdrawalPayload));
+          showWalletMsg(`✅ Request submitted! Details sent to @withdralaprove.`, "bg-green-100 text-green-800");
+        }
+      } catch (err) {
+        if (tg && tg.sendData) tg.sendData(JSON.stringify(withdrawalPayload));
+        showWalletMsg(`✅ Request submitted! Forwarded to @withdralaprove.`, "bg-green-100 text-green-800");
+      }
+
       document.getElementById('withdraw-amount').value = '';
       document.getElementById('withdraw-telebirr').value = '';
     }
@@ -610,6 +698,7 @@
 
     function openHistoryModal() {
       document.getElementById('user-display-name').innerText = `${userProfile.firstName} (${userProfile.username})`;
+      document.getElementById('user-phone-input').value = userPhone;
       
       const totalSpent = customerHistory.reduce((sum, item) => sum + item.price, 0);
       document.getElementById('user-total-spent').innerText = `${totalSpent.toFixed(2)} ETB`;
@@ -687,7 +776,6 @@
       renderShop();
     }
 
-    // Init
     registerMember();
     updateWalletDisplay();
     renderShop();
