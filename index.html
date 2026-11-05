@@ -25,8 +25,8 @@
         💳 <span id="header-wallet-bal">0.00 ETB</span>
       </button>
       <button onclick="openHistoryModal()" class="text-xs px-3 py-1.5 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded-lg font-semibold">My Account</button>
-      <!-- Admin Button (Unlocked ONLY for @WDemeke1) -->
-      <button id="toggle-view" onclick="toggleAdminMode()" class="hidden text-xs px-3 py-1.5 bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 rounded-lg font-semibold">Admin Panel</button>
+      <!-- Admin Button (ONLY unlocked for @WDemeke1) -->
+      <button id="toggle-view" onclick="toggleAdminMode()" class="hidden text-xs px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold shadow-sm">👑 Admin Panel</button>
     </div>
   </header>
 
@@ -53,7 +53,6 @@
         <span id="modal-wallet-bal" class="text-base font-bold text-green-600">0.00 ETB</span>
       </div>
 
-      <!-- Action Tabs: Deposit vs Withdraw -->
       <div class="grid grid-cols-2 gap-2">
         <button id="btn-tab-deposit" onclick="switchWalletTab('deposit')" class="py-2 text-xs font-bold rounded-lg bg-blue-600 text-white">Deposit Funds</button>
         <button id="btn-tab-withdraw" onclick="switchWalletTab('withdraw')" class="py-2 text-xs font-bold rounded-lg bg-gray-200 dark:bg-gray-800 opacity-70">Withdrawal</button>
@@ -79,7 +78,6 @@
       </div>
 
       <div id="wallet-msg" class="hidden p-2.5 rounded-lg text-xs font-medium"></div>
-
       <button onclick="closeWalletModal()" class="w-full py-2 bg-gray-500 text-white text-xs font-semibold rounded-lg">Close</button>
     </div>
   </div>
@@ -89,7 +87,6 @@
     <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 max-w-md w-full space-y-4 border border-gray-700 shadow-2xl max-h-[90vh] overflow-y-auto">
       <h3 class="text-lg font-bold">Complete Payment</h3>
       
-      <!-- Option 1: Pay with Wallet Balance -->
       <div class="p-3 bg-green-50 dark:bg-slate-800 rounded-xl border border-green-300 dark:border-green-800 flex justify-between items-center">
         <div>
           <span class="text-xs font-bold block">Pay using Wallet Balance</span>
@@ -100,7 +97,6 @@
 
       <div class="text-center text-xs opacity-50 font-bold">- OR DIRECT PAYMENT -</div>
 
-      <!-- Option 2: Telebirr / Siinqee Bank -->
       <div>
         <label class="text-xs font-semibold block mb-1">Select Payment Option:</label>
         <div class="grid grid-cols-2 gap-2">
@@ -113,12 +109,8 @@
         </div>
       </div>
 
-      <!-- Account Info Display -->
-      <div id="payment-account-info" class="bg-blue-50 dark:bg-slate-800 p-3 rounded-lg text-xs space-y-1 border border-blue-200 dark:border-blue-900">
-        <!-- Injected dynamically -->
-      </div>
+      <div id="payment-account-info" class="bg-blue-50 dark:bg-slate-800 p-3 rounded-lg text-xs space-y-1 border border-blue-200 dark:border-blue-900"></div>
 
-      <!-- Receipt Text Area -->
       <div class="space-y-2">
         <label class="text-xs font-semibold">Paste Full SMS Receipt or Transaction ID:</label>
         <textarea id="txn-receipt-input" rows="3" placeholder='Paste full SMS like: "Dear Wandu You have transferred ETB 300.00... Your transaction number is DJS2E0GHUU..."' class="w-full p-2.5 rounded-lg border bg-transparent text-xs font-mono"></textarea>
@@ -160,35 +152,60 @@
 
       <div>
         <h4 class="text-xs font-bold uppercase tracking-wider opacity-70 mb-2">Purchase History</h4>
-        <div id="history-list" class="space-y-2 text-xs">
-          <!-- Injected dynamically -->
-        </div>
+        <div id="history-list" class="space-y-2 text-xs"></div>
       </div>
 
       <button onclick="closeHistoryModal()" class="w-full py-2 bg-gray-500 text-white rounded-lg font-semibold text-sm">Close</button>
     </div>
   </div>
 
-  <!-- ADMIN UPLOAD VIEW -->
-  <div id="admin-view" class="hidden space-y-4">
+  <!-- ADMIN DASHBOARD (EXCLUSIVELY FOR @WDemeke1) -->
+  <div id="admin-view" class="hidden space-y-6">
     <div class="p-4 rounded-xl border border-purple-500 bg-purple-50/50 dark:bg-slate-900 shadow-sm">
-      <h2 class="text-lg font-bold mb-2 text-purple-700 dark:text-purple-300">Admin Panel: Upload Product</h2>
-      <p class="text-xs opacity-70 mb-3">Logged in as administrator: <strong>@WDemeke1</strong></p>
-      <form id="upload-form" onsubmit="handleProductUpload(event)" class="space-y-3">
-        <input type="text" id="prod-title" placeholder="Product Title (e.g., Grade 12 Physics Book)" required class="w-full p-2 rounded border bg-transparent text-sm">
+      <div class="flex justify-between items-center mb-4">
+        <div>
+          <h2 class="text-xl font-bold text-purple-700 dark:text-purple-300">👑 Master Admin Dashboard</h2>
+          <p class="text-xs opacity-70">Authorized Owner: <strong>@WDemeke1</strong></p>
+        </div>
+        <span class="px-2.5 py-1 bg-purple-200 text-purple-900 dark:bg-purple-900 dark:text-purple-100 rounded-full text-xs font-bold">Protected</span>
+      </div>
+
+      <!-- Admin Tabs: Upload Product vs Customer Activity Log -->
+      <div class="flex gap-2 border-b border-purple-200 dark:border-purple-800 pb-3 mb-4">
+        <button id="tab-admin-upload" onclick="switchAdminSubTab('upload')" class="px-3 py-1.5 text-xs font-bold bg-purple-600 text-white rounded-lg">Upload Product</button>
+        <button id="tab-admin-customers" onclick="switchAdminSubTab('customers')" class="px-3 py-1.5 text-xs font-bold bg-gray-200 dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-lg">Customer Activity & Members</button>
+      </div>
+
+      <!-- SUB-TAB 1: UPLOAD PRODUCT -->
+      <div id="admin-sub-upload" class="space-y-3">
+        <form id="upload-form" onsubmit="handleProductUpload(event)" class="space-y-3">
+          <input type="text" id="prod-title" placeholder="Product Title (e.g., Grade 12 Physics Book)" required class="w-full p-2 rounded border bg-transparent text-sm">
+          
+          <select id="prod-type" class="w-full p-2 rounded border bg-transparent text-sm">
+            <option value="book">Book</option>
+            <option value="data">Data / Dataset</option>
+            <option value="design">Design Asset</option>
+          </select>
+          
+          <input type="number" id="prod-price" placeholder="Price in ETB (e.g., 300)" required class="w-full p-2 rounded border bg-transparent text-sm">
+          <textarea id="prod-desc" placeholder="Product description..." required class="w-full p-2 rounded border bg-transparent text-sm"></textarea>
+          <input type="text" id="prod-link" placeholder="Download Link (Google Drive, Telegram link)" required class="w-full p-2 rounded border bg-transparent text-sm">
+          
+          <button type="submit" class="w-full py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold text-sm">Publish Product to Store</button>
+        </form>
+      </div>
+
+      <!-- SUB-TAB 2: CUSTOMER ACTIVITY & MEMBER LIST (EXCLUSIVE TO @WDemeke1) -->
+      <div id="admin-sub-customers" class="hidden space-y-4">
+        <div class="flex justify-between items-center">
+          <h3 class="text-sm font-bold uppercase tracking-wider">Registered App Members & Purchases</h3>
+          <span id="admin-total-members" class="text-xs font-bold bg-purple-200 text-purple-900 px-2 py-0.5 rounded">0 Members</span>
+        </div>
         
-        <select id="prod-type" class="w-full p-2 rounded border bg-transparent text-sm">
-          <option value="book">Book</option>
-          <option value="data">Data / Dataset</option>
-          <option value="design">Design Asset</option>
-        </select>
-        
-        <input type="number" id="prod-price" placeholder="Price in ETB (e.g., 300)" required class="w-full p-2 rounded border bg-transparent text-sm">
-        <textarea id="prod-desc" placeholder="Product description..." required class="w-full p-2 rounded border bg-transparent text-sm"></textarea>
-        <input type="text" id="prod-link" placeholder="Download Link (Google Drive, Telegram link)" required class="w-full p-2 rounded border bg-transparent text-sm">
-        
-        <button type="submit" class="w-full py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold text-sm">Publish Product</button>
-      </form>
+        <div id="admin-customer-list" class="space-y-3 text-xs">
+          <!-- Injected dynamically for @WDemeke1 -->
+        </div>
+      </div>
     </div>
   </div>
 
@@ -197,13 +214,14 @@
     const tg = window.Telegram?.WebApp;
     if (tg) { tg.ready(); tg.expand(); }
 
-    // Profile & Admin Verification
+    // User Profile Information
     const userProfile = {
       username: tg?.initDataUnsafe?.user?.username ? '@' + tg.initDataUnsafe.user.username : '@Guest_User',
       firstName: tg?.initDataUnsafe?.user?.first_name || 'Valued Customer',
       id: tg?.initDataUnsafe?.user?.id || Math.floor(Math.random() * 1000000)
     };
 
+    // STRICT SINGLE-ADMIN SECURITY LOCK: Only @WDemeke1 can access Admin
     const ADMIN_USERNAME = "WDemeke1";
     const isUserAdmin = userProfile.username.replace('@', '').trim().toLowerCase() === ADMIN_USERNAME.toLowerCase();
 
@@ -216,7 +234,7 @@
     let selectedProduct = null;
     let currentCategory = 'all';
 
-    // Local DB Persisted Storage
+    // Local Storage Database Simulation
     let walletBalance = parseFloat(localStorage.getItem('ethio_wallet_' + userProfile.id)) || 0.00;
     let products = JSON.parse(localStorage.getItem('ethio_products')) || [
       { id: 'p1', title: 'Ethio Tech Career Guide (E-Book)', type: 'book', price: 300, desc: 'Complete senior software engineer masterclass guide.', link: 'https://example.com/ebook-download.pdf' },
@@ -225,6 +243,30 @@
 
     let usedTxnNumbers = JSON.parse(localStorage.getItem('ethio_used_txns')) || [];
     let customerHistory = JSON.parse(localStorage.getItem('ethio_customer_history_' + userProfile.id)) || [];
+
+    // Global Member Directory (Tracks all app users for @WDemeke1)
+    let globalMemberRegistry = JSON.parse(localStorage.getItem('ethio_global_members')) || [];
+
+    // Register Current User to Global Registry
+    function registerMember() {
+      let existingIndex = globalMemberRegistry.findIndex(m => m.id === userProfile.id);
+      const memberData = {
+        id: userProfile.id,
+        name: userProfile.firstName,
+        username: userProfile.username,
+        wallet: walletBalance,
+        totalSpent: customerHistory.reduce((sum, item) => sum + item.price, 0),
+        history: customerHistory,
+        lastActive: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString()
+      };
+
+      if (existingIndex > -1) {
+        globalMemberRegistry[existingIndex] = memberData;
+      } else {
+        globalMemberRegistry.push(memberData);
+      }
+      localStorage.setItem('ethio_global_members', JSON.stringify(globalMemberRegistry));
+    }
 
     const ACCOUNTS = {
       telebirr: { number: '0905158371' },
@@ -236,15 +278,92 @@
       document.getElementById('modal-wallet-bal').innerText = `${walletBalance.toFixed(2)} ETB`;
       document.getElementById('checkout-wallet-bal').innerText = `Available: ${walletBalance.toFixed(2)} ETB`;
       localStorage.setItem('ethio_wallet_' + userProfile.id, walletBalance.toString());
+      registerMember();
     }
 
     function toggleAdminMode() {
-      if (!isUserAdmin) return alert("Unauthorized access.");
+      if (!isUserAdmin) return alert("Security Violation: Access restricted to @WDemeke1.");
       isAdminView = !isAdminView;
       document.getElementById('shop-view').classList.toggle('hidden', isAdminView);
       document.getElementById('category-tabs').classList.toggle('hidden', isAdminView);
       document.getElementById('admin-view').classList.toggle('hidden', !isAdminView);
-      document.getElementById('toggle-view').innerText = isAdminView ? 'Customer View' : 'Admin Panel';
+      document.getElementById('toggle-view').innerText = isAdminView ? 'Customer View' : '👑 Admin Panel';
+      
+      if (isAdminView) {
+        renderAdminCustomerList();
+      }
+    }
+
+    function switchAdminSubTab(tab) {
+      const upSec = document.getElementById('admin-sub-upload');
+      const custSec = document.getElementById('admin-sub-customers');
+      const upTab = document.getElementById('tab-admin-upload');
+      const custTab = document.getElementById('tab-admin-customers');
+
+      if (tab === 'upload') {
+        upSec.classList.remove('hidden');
+        custSec.classList.add('hidden');
+        upTab.className = "px-3 py-1.5 text-xs font-bold bg-purple-600 text-white rounded-lg";
+        custTab.className = "px-3 py-1.5 text-xs font-bold bg-gray-200 dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-lg";
+      } else {
+        custSec.classList.remove('hidden');
+        upSec.classList.add('hidden');
+        custTab.className = "px-3 py-1.5 text-xs font-bold bg-purple-600 text-white rounded-lg";
+        upTab.className = "px-3 py-1.5 text-xs font-bold bg-gray-200 dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-lg";
+        renderAdminCustomerList();
+      }
+    }
+
+    // Render Members & Customer Activity for @WDemeke1 ONLY
+    function renderAdminCustomerList() {
+      if (!isUserAdmin) return;
+      const listContainer = document.getElementById('admin-customer-list');
+      document.getElementById('admin-total-members').innerText = `${globalMemberRegistry.length} Member(s)`;
+      listContainer.innerHTML = '';
+
+      if (globalMemberRegistry.length === 0) {
+        listContainer.innerHTML = '<p class="opacity-50 text-center py-6">No member activity recorded yet.</p>';
+        return;
+      }
+
+      globalMemberRegistry.forEach(m => {
+        let historyHtml = '';
+        if (m.history && m.history.length > 0) {
+          m.history.forEach(h => {
+            historyHtml += `
+              <div class="p-2 bg-gray-50 dark:bg-slate-800 rounded border border-gray-200 dark:border-gray-700 mt-1">
+                <div class="flex justify-between font-medium">
+                  <span>${h.productTitle}</span>
+                  <span class="text-green-600">${h.price} ETB</span>
+                </div>
+                <div class="flex justify-between text-[10px] opacity-70">
+                  <span>Txn ID: ${h.txnId}</span>
+                  <span>${h.date}</span>
+                </div>
+              </div>`;
+          });
+        } else {
+          historyHtml = '<p class="text-[10px] opacity-40 italic">No purchase history yet.</p>';
+        }
+
+        listContainer.innerHTML += `
+          <div class="p-3 border border-purple-200 dark:border-purple-900 bg-white dark:bg-slate-900 rounded-xl space-y-2">
+            <div class="flex justify-between items-start border-b pb-2 dark:border-gray-800">
+              <div>
+                <span class="font-bold text-sm text-purple-700 dark:text-purple-300">${m.name}</span>
+                <span class="text-xs opacity-70 block">${m.username} (ID: ${m.id})</span>
+              </div>
+              <div class="text-right">
+                <span class="text-xs text-green-600 font-bold block">Wallet: ${m.wallet.toFixed(2)} ETB</span>
+                <span class="text-[10px] opacity-60">Total Spent: ${m.totalSpent.toFixed(2)} ETB</span>
+              </div>
+            </div>
+            <div>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-gray-500">Customer Purchases:</span>
+              ${historyHtml}
+            </div>
+          </div>`;
+      });
     }
 
     function filterCategory(cat) {
@@ -289,7 +408,6 @@
       });
     }
 
-    // Wallet Deposit & Withdrawal Modal
     function openWalletModal() {
       updateWalletDisplay();
       switchWalletTab('deposit');
@@ -379,7 +497,6 @@
       el.classList.remove('hidden');
     }
 
-    // Payment Modal Functions
     function openPaymentModal(product) {
       selectedProduct = product;
       selectPaymentMethod('telebirr');
@@ -400,7 +517,6 @@
       }
 
       walletBalance -= selectedProduct.price;
-      updateWalletDisplay();
 
       const purchaseRecord = {
         txnId: 'WAL_' + Date.now(),
@@ -414,6 +530,7 @@
       customerHistory.push(purchaseRecord);
       localStorage.setItem('ethio_customer_history_' + userProfile.id, JSON.stringify(customerHistory));
 
+      updateWalletDisplay();
       closePaymentModal();
       alert(`🎉 Payment successful using wallet!\n\nProduct: "${selectedProduct.title}"\n📥 Download Link:\n${selectedProduct.link}`);
     }
@@ -475,6 +592,7 @@
       customerHistory.push(purchaseRecord);
       localStorage.setItem('ethio_customer_history_' + userProfile.id, JSON.stringify(customerHistory));
 
+      registerMember();
       showValidationMsg(`✅ Payment Verified! Txn ID: ${txnNumber}. Opening your download link...`, 'bg-green-100 text-green-800');
 
       setTimeout(() => {
@@ -490,7 +608,6 @@
       el.classList.remove('hidden');
     }
 
-    // Customer Account & Referral Share
     function openHistoryModal() {
       document.getElementById('user-display-name').innerText = `${userProfile.firstName} (${userProfile.username})`;
       
@@ -548,7 +665,6 @@
       }
     }
 
-    // Admin Upload
     function handleProductUpload(e) {
       e.preventDefault();
       if (!isUserAdmin) return alert("Action forbidden.");
@@ -572,6 +688,7 @@
     }
 
     // Init
+    registerMember();
     updateWalletDisplay();
     renderShop();
   </script>
