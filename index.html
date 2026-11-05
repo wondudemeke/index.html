@@ -3,108 +3,156 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Book Store - Telegram Mini App</title>
-    <!-- Telegram Web App SDK -->
+    <title>Book Store Mini App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- Tailwind CSS CDN for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Automatically adopt Telegram's theme colors */
         body {
             background-color: var(--tg-theme-bg-color, #ffffff);
             color: var(--tg-theme-text-color, #000000);
         }
     </style>
 </head>
-<body class="p-4 font-sans min-h-screen pb-24">
+<body class="p-4 font-sans min-h-screen pb-28">
 
-    <!-- Header -->
-    <header class="mb-6">
-        <h1 class="text-2xl font-bold">📚 My Book Store</h1>
-        <p class="text-sm opacity-70">Get your digital copies instantly</p>
+    <!-- Header & View Toggles -->
+    <header class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-xl font-bold">📚 Book Store</h1>
+            <p class="text-xs opacity-70">Instant Digital Delivery</p>
+        </div>
+        <button id="admin-toggle" onclick="toggleAdminMode()" class="text-xs px-3 py-1.5 rounded-lg bg-gray-200 dark:bg-gray-800 font-medium">
+            Admin Panel
+        </button>
     </header>
 
-    <!-- Product List Container -->
-    <div id="product-grid" class="grid grid-cols-1 gap-4">
-        <!-- Rendered dynamically by JavaScript -->
+    <!-- ADMIN UPLOAD SECTION (Hidden by default) -->
+    <div id="admin-panel" class="hidden mb-6 p-4 rounded-xl border border-blue-500 bg-blue-50 dark:bg-slate-900">
+        <h2 class="text-sm font-bold text-blue-600 dark:text-blue-400 mb-3">➕ Upload New Book</h2>
+        <form id="upload-form" onsubmit="handleUpload(event)" class="space-y-3">
+            <input type="text" id="book-title" placeholder="Book Title" required class="w-full p-2 text-sm rounded border bg-white dark:bg-slate-800 border-gray-300 dark:border-gray-700">
+            <textarea id="book-desc" placeholder="Short description..." required class="w-full p-2 text-sm rounded border bg-white dark:bg-slate-800 border-gray-300 dark:border-gray-700"></textarea>
+            <input type="number" id="book-price" placeholder="Price in Telegram Stars (e.g. 150)" required class="w-full p-2 text-sm rounded border bg-white dark:bg-slate-800 border-gray-300 dark:border-gray-700">
+            <input type="url" id="book-file-url" placeholder="Direct Download URL (PDF/EPUB)" required class="w-full p-2 text-sm rounded border bg-white dark:bg-slate-800 border-gray-300 dark:border-gray-700">
+            <button type="submit" class="w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold">Publish Book</button>
+        </form>
     </div>
 
-    <!-- JavaScript Application Logic -->
+    <!-- PRODUCT CATALOG -->
+    <div id="product-grid" class="grid grid-cols-1 gap-4">
+        <!-- Dynamic Products Injected Here -->
+    </div>
+
     <script>
-        // Initialize Telegram WebApp
         const tg = window.Telegram?.WebApp;
         if (tg) {
             tg.ready();
             tg.expand();
         }
 
-        // Product Catalog (Focused on your book options)
-        const products = [
-            { 
-                id: 'b1', 
-                title: 'Developer Masterclass (PDF Edition)', 
-                type: 'book', 
-                price: '250 ⭐', 
-                desc: 'Complete PDF guide for modern software engineers with code samples.' 
-            },
-            { 
-                id: 'b2', 
-                title: 'Developer Masterclass (EPUB + Audio Bundle)', 
-                type: 'book', 
-                price: '400 ⭐', 
-                desc: 'Includes EPUB version, bonus chapters, and audio summaries.' 
-            }
+        // Hardcoded or dynamically fetched list of products
+        let products = JSON.parse(localStorage.getItem('my_books')) || [
+            { id: '1', title: 'Mastering JavaScript (PDF)', desc: 'Advanced architectural guide.', price: 200, fileUrl: 'https://example.com/sample.pdf' }
         ];
 
-        let cart = [];
+        let selectedProduct = null;
+        let isAdminOpen = false;
 
-        // Render Products to HTML
+        function toggleAdminMode() {
+            isAdminOpen = !isAdminOpen;
+            const panel = document.getElementById('admin-panel');
+            const btn = document.getElementById('admin-toggle');
+            if (isAdminOpen) {
+                panel.classList.remove('hidden');
+                btn.textContent = 'Close Admin';
+            } else {
+                panel.classList.add('hidden');
+                btn.textContent = 'Admin Panel';
+            }
+        }
+
+        function handleUpload(e) {
+            e.preventDefault();
+            const newBook = {
+                id: 'book_' + Date.now(),
+                title: document.getElementById('book-title').value,
+                desc: document.getElementById('book-desc').value,
+                price: parseInt(document.getElementById('book-price').value),
+                fileUrl: document.getElementById('book-file-url').value
+            };
+
+            products.push(newBook);
+            localStorage.setItem('my_books', JSON.stringify(products));
+            
+            document.getElementById('upload-form').reset();
+            toggleAdminMode();
+            renderProducts();
+            tg?.showAlert('Book published successfully!');
+        }
+
         function renderProducts() {
-            const container = document.getElementById('product-grid');
-            container.innerHTML = '';
+            const grid = document.getElementById('product-grid');
+            grid.innerHTML = '';
 
             products.forEach(p => {
-                const item = document.createElement('div');
-                item.className = "p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col justify-between";
-                item.innerHTML = `
+                const card = document.createElement('div');
+                card.className = "p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col justify-between";
+                card.innerHTML = `
                     <div>
-                        <span class="text-xs uppercase tracking-wider px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-semibold">${p.type}</span>
-                        <h2 class="text-lg font-semibold mt-2">${p.title}</h2>
-                        <p class="text-sm opacity-70 mt-1">${p.desc}</p>
+                        <h2 class="text-base font-bold">${p.title}</h2>
+                        <p class="text-xs opacity-70 mt-1">${p.desc}</p>
                     </div>
-                    <div class="flex items-center justify-between mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-                        <span class="font-bold text-base">${p.price}</span>
-                        <button onclick="addToCart('${p.id}')" class="px-4 py-2 rounded-lg text-sm font-semibold bg-blue-500 text-white hover:bg-blue-600 active:scale-95 transition-all">
-                            Add to Order
+                    <div class="flex items-center justify-between mt-4 pt-3 border-t border-gray-100 dark:border-gray-800">
+                        <span class="font-bold text-sm text-amber-500">${p.price} ⭐</span>
+                        <button onclick="selectProduct('${p.id}')" class="px-4 py-2 rounded-lg text-xs font-semibold bg-blue-500 text-white active:scale-95">
+                            Buy Now
                         </button>
                     </div>
                 `;
-                container.appendChild(item);
+                grid.appendChild(card);
             });
         }
 
-        // Add Item to Cart & Update Telegram MainButton
-        function addToCart(id) {
-            const product = products.find(p => p.id === id);
-            cart.push(product);
-
-            if (tg && tg.MainButton) {
-                tg.MainButton.text = `Checkout (${cart.length} item${cart.length > 1 ? 's' : ''})`;
+        function selectProduct(id) {
+            selectedProduct = products.find(p => p.id === id);
+            if (tg && tg.MainButton && selectedProduct) {
+                tg.MainButton.text = `Pay ${selectedProduct.price} ⭐ for ${selectedProduct.title}`;
                 tg.MainButton.show();
-                tg.MainButton.onClick(sendDataToBot);
+                tg.MainButton.onClick(processPayment);
             }
         }
 
-        // Send Selected Data Back to Telegram Bot
-        function sendDataToBot() {
-            if (tg) {
-                const payload = JSON.stringify({ cart: cart });
-                tg.sendData(payload); // Sends data back to bot event `web_app_data`
-                tg.close();
-            }
+        function processPayment() {
+            if (!selectedProduct) return;
+            
+            // Tell backend/bot to create a Telegram Stars Invoice for this user
+            fetch('https://YOUR_BACKEND_URL/create-invoice', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: tg.initDataUnsafe?.user?.id,
+                    productId: selectedProduct.id,
+                    title: selectedProduct.title,
+                    price: selectedProduct.price
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.invoiceLink) {
+                    // Open Telegram invoice native payment sheet
+                    tg.openInvoice(data.invoiceLink, (status) => {
+                        if (status === 'paid') {
+                            tg.showAlert('Payment successful! Check chat for your book file.');
+                            tg.close();
+                        }
+                    });
+                }
+            })
+            .catch(err => {
+                tg.showAlert('Error processing payment.');
+            });
         }
 
-        // Initial Render
         renderProducts();
     </script>
 </body>
