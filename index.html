@@ -22,7 +22,8 @@
     </div>
     <div class="flex gap-2">
       <button onclick="openHistoryModal()" class="text-xs px-3 py-1.5 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded-lg font-semibold">My Account</button>
-      <button id="toggle-view" onclick="toggleAdminMode()" class="text-xs px-3 py-1.5 bg-gray-200 dark:bg-gray-800 rounded-lg font-semibold">Admin Panel</button>
+      <!-- Admin Button (Hidden by default, unlocked ONLY for @WDemeke1) -->
+      <button id="toggle-view" onclick="toggleAdminMode()" class="hidden text-xs px-3 py-1.5 bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 rounded-lg font-semibold">Admin Panel</button>
     </div>
   </header>
 
@@ -61,7 +62,7 @@
 
       <!-- Account Info Display -->
       <div id="payment-account-info" class="bg-blue-50 dark:bg-slate-800 p-3 rounded-lg text-xs space-y-1 border border-blue-200 dark:border-blue-900">
-        <!-- Injected based on selected payment method -->
+        <!-- Injected based on selection -->
       </div>
 
       <!-- Receipt Text Area / Reference -->
@@ -70,7 +71,7 @@
         <textarea id="txn-receipt-input" rows="4" placeholder='Paste full SMS like: "Dear Wandu You have transferred ETB 300.00... Your transaction number is DJS2E0GHUU..."' class="w-full p-2.5 rounded-lg border bg-transparent text-xs focus:ring-2 focus:ring-blue-500 font-mono"></textarea>
       </div>
 
-      <!-- Feedback / Verification Banner -->
+      <!-- Feedback Banner -->
       <div id="validation-msg" class="hidden p-2.5 rounded-lg text-xs font-medium"></div>
 
       <div class="flex gap-2 pt-2">
@@ -80,18 +81,29 @@
     </div>
   </div>
 
-  <!-- CUSTOMER HISTORY & ACCOUNT MODAL -->
+  <!-- CUSTOMER HISTORY, ACCOUNT & REFERRAL MODAL -->
   <div id="history-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
     <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 max-w-md w-full space-y-4 border border-gray-700 shadow-2xl max-h-[90vh] overflow-y-auto">
       <div class="flex justify-between items-center border-b pb-3 border-gray-200 dark:border-gray-800">
         <div>
-          <h3 class="text-lg font-bold">Customer Account</h3>
-          <p id="user-display-name" class="text-xs opacity-70">User ID: Guest</p>
+          <h3 class="text-lg font-bold">My Account</h3>
+          <p id="user-display-name" class="text-xs opacity-70">User: Guest</p>
         </div>
         <div class="text-right">
           <span class="text-xs opacity-70 block">Total Spent</span>
           <span id="user-total-spent" class="font-bold text-green-600 text-sm">0.00 ETB</span>
         </div>
+      </div>
+
+      <!-- Referral Section -->
+      <div class="bg-blue-50 dark:bg-slate-800 p-3.5 rounded-xl border border-blue-200 dark:border-blue-900 space-y-2">
+        <h4 class="text-xs font-bold text-blue-800 dark:text-blue-300 uppercase tracking-wider">🎁 Referral Program</h4>
+        <p class="text-[11px] opacity-80">Share your referral link with friends. Earn rewards when they purchase books or datasets!</p>
+        <div class="flex gap-2">
+          <input type="text" id="referral-link-input" readonly class="w-full p-1.5 text-xs rounded border bg-white dark:bg-slate-900 font-mono" />
+          <button onclick="copyReferralLink()" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shrink-0">Copy</button>
+        </div>
+        <button onclick="shareReferralTelegram()" class="w-full mt-1 py-1.5 bg-sky-500 hover:bg-sky-600 text-white text-xs font-semibold rounded-lg">Share via Telegram</button>
       </div>
 
       <div>
@@ -107,8 +119,9 @@
 
   <!-- ADMIN UPLOAD VIEW -->
   <div id="admin-view" class="hidden space-y-4">
-    <div class="p-4 rounded-xl border border-blue-500 bg-blue-50/50 dark:bg-slate-900 shadow-sm">
-      <h2 class="text-lg font-bold mb-2">Admin: Upload Digital Product</h2>
+    <div class="p-4 rounded-xl border border-purple-500 bg-purple-50/50 dark:bg-slate-900 shadow-sm">
+      <h2 class="text-lg font-bold mb-2 text-purple-700 dark:text-purple-300">Admin Panel: Upload Product</h2>
+      <p class="text-xs opacity-70 mb-3">Logged in as authorized administrator: <strong>@WDemeke1</strong></p>
       <form id="upload-form" onsubmit="handleProductUpload(event)" class="space-y-3">
         <input type="text" id="prod-title" placeholder="Product Title (e.g., Grade 12 Physics E-Book)" required class="w-full p-2 rounded border bg-transparent text-sm">
         
@@ -120,11 +133,11 @@
         
         <input type="number" id="prod-price" placeholder="Price in ETB (e.g., 300)" required class="w-full p-2 rounded border bg-transparent text-sm">
         
-        <textarea id="prod-desc" placeholder="Product details / description..." required class="w-full p-2 rounded border bg-transparent text-sm"></textarea>
+        <textarea id="prod-desc" placeholder="Product description..." required class="w-full p-2 rounded border bg-transparent text-sm"></textarea>
         
-        <input type="text" id="prod-link" placeholder="Secure Download Link (Google Drive, Telegram Channel link)" required class="w-full p-2 rounded border bg-transparent text-sm">
+        <input type="text" id="prod-link" placeholder="Download Link (Google Drive, Telegram link)" required class="w-full p-2 rounded border bg-transparent text-sm">
         
-        <button type="submit" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-sm transition-all">Publish to Store</button>
+        <button type="submit" class="w-full py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold text-sm transition-all">Publish Product</button>
       </form>
     </div>
   </div>
@@ -136,17 +149,27 @@
 
     // User Profile Information
     const userProfile = {
-      username: tg?.initDataUnsafe?.user?.username ? '@' + tg.initDataUnsafe.user.username : 'Guest_User',
+      username: tg?.initDataUnsafe?.user?.username ? '@' + tg.initDataUnsafe.user.username : '@Guest_User',
       firstName: tg?.initDataUnsafe?.user?.first_name || 'Valued Customer',
-      id: tg?.initDataUnsafe?.user?.id || 'ID_' + Math.floor(Math.random() * 1000000)
+      id: tg?.initDataUnsafe?.user?.id || Math.floor(Math.random() * 1000000)
     };
 
-    let isAdmin = window.location.search.includes('admin=true');
+    // STRICT ADMIN VERIFICATION: Only @WDemeke1 is allowed as admin
+    const ADMIN_USERNAME = "WDemeke1";
+    const cleanUsername = userProfile.username.replace('@', '').trim();
+    const isUserAdmin = cleanUsername.toLowerCase() === ADMIN_USERNAME.toLowerCase();
+
+    // Show Admin Panel Button ONLY if user is @WDemeke1
+    if (isUserAdmin) {
+      document.getElementById('toggle-view').classList.remove('hidden');
+    }
+
+    let isAdminView = false;
     let selectedPaymentMethod = 'telebirr';
     let selectedProduct = null;
     let currentCategory = 'all';
 
-    // In-memory Database / Local Storage Persisted State
+    // In-memory Database / Local Storage State
     let products = JSON.parse(localStorage.getItem('ethio_products')) || [
       { id: 'p1', title: 'Ethio Tech Career Guide (E-Book)', type: 'book', price: 300, desc: 'Complete senior software engineer masterclass guide.', link: 'https://example.com/ebook-download.pdf' },
       { id: 'p2', title: 'UI/UX Mobile Design Kit', type: 'design', price: 450, desc: 'Figma templates & local payment components.', link: 'https://example.com/design-kit.zip' }
@@ -157,16 +180,20 @@
 
     // Payment Accounts
     const ACCOUNTS = {
-      telebirr: { name: 'Telebirr Account', number: '0905158371', owner: 'Ethio Digital Store' },
-      sinqee: { name: 'Siinqee Bank Account', number: '1036696630101', owner: 'Ethio Digital Store' }
+      telebirr: { number: '0905158371', owner: 'Ethio Digital Store' },
+      sinqee: { number: '1036696630101', owner: 'Ethio Digital Store' }
     };
 
     function toggleAdminMode() {
-      isAdmin = !isAdmin;
-      document.getElementById('shop-view').classList.toggle('hidden', isAdmin);
-      document.getElementById('category-tabs').classList.toggle('hidden', isAdmin);
-      document.getElementById('admin-view').classList.toggle('hidden', !isAdmin);
-      document.getElementById('toggle-view').innerText = isAdmin ? 'Customer View' : 'Admin Panel';
+      if (!isUserAdmin) {
+        alert("Unauthorized access restricted to @WDemeke1.");
+        return;
+      }
+      isAdminView = !isAdminView;
+      document.getElementById('shop-view').classList.toggle('hidden', isAdminView);
+      document.getElementById('category-tabs').classList.toggle('hidden', isAdminView);
+      document.getElementById('admin-view').classList.toggle('hidden', !isAdminView);
+      document.getElementById('toggle-view').innerText = isAdminView ? 'Customer View' : 'Admin Panel';
     }
 
     function filterCategory(cat) {
@@ -237,7 +264,7 @@
           <p><strong>Number:</strong> <span class="text-blue-600 font-mono font-bold text-sm">${ACCOUNTS.telebirr.number}</span></p>
           <p><strong>Required Amount:</strong> <span class="font-bold text-green-600">${selectedProduct.price} ETB</span></p>`;
       } else {
-        sinqeeBtn.className = "p-2.5 rounded-lg border text-xs font-bold bg-blue-50 border-blue-600 text-blue-700 dark:bg-slate-800 dark:text-blue-400";
+        sinqeeBtn.className = "p-2.5 rounded-lg border text-xs font-bold bg-blue-50 border-blue-600 text-blue-700 dark:bg-slate-800 dark:text-gray-300";
         teleBtn.className = "p-2.5 rounded-lg border text-xs font-bold bg-gray-100 border-gray-300 text-gray-700 dark:bg-slate-800 dark:text-gray-300";
         accInfo.innerHTML = `
           <p><strong>Method:</strong> Siinqee Bank</p>
@@ -256,38 +283,24 @@
       }
 
       let txnNumber = '';
-      let amountFound = 0;
-
-      // Extract transaction ID using regex (e.g. "transaction number is DJS2E0GHUU" or standalone ID)
       const txnRegex = /(?:transaction number is|transaction number|txn|id)[:\s]*([A-Z0-9]{8,12})/i;
       const matchTxn = rawInput.match(txnRegex);
 
       if (matchTxn && matchTxn[1]) {
         txnNumber = matchTxn[1].toUpperCase();
       } else {
-        // Fallback: extract any isolated 8-12 uppercase alphanumeric string
         const fallbackMatch = rawInput.match(/\b[A-Z0-9]{8,12}\b/);
         txnNumber = fallbackMatch ? fallbackMatch[0].toUpperCase() : rawInput.toUpperCase();
       }
 
-      // Check if transaction number was already used
       if (usedTxnNumbers.includes(txnNumber)) {
         showValidationMsg(`⚠️ Fraud Prevention: Transaction ID "${txnNumber}" has already been used! Receipt reuse is strictly forbidden.`, 'bg-red-100 text-red-800');
         return;
       }
 
-      // Extract Amount paid if full SMS was pasted
-      const amountRegex = /(?:ETB|BIRR)\s*([\d,]+\.?\d*)/i;
-      const matchAmount = rawInput.match(amountRegex);
-      if (matchAmount && matchAmount[1]) {
-        amountFound = parseFloat(matchAmount[1].replace(',', ''));
-      }
-
-      // Record transaction number to block duplicate re-use
       usedTxnNumbers.push(txnNumber);
       localStorage.setItem('ethio_used_txns', JSON.stringify(usedTxnNumbers));
 
-      // Record in Customer History
       const purchaseRecord = {
         txnId: txnNumber,
         productTitle: selectedProduct.title,
@@ -319,12 +332,17 @@
       document.getElementById('validation-msg').classList.add('hidden');
     }
 
-    // Customer Account & History Modal Logic
+    // Customer Account, History & Referral Link Logic
     function openHistoryModal() {
       document.getElementById('user-display-name').innerText = `${userProfile.firstName} (${userProfile.username})`;
       
       const totalSpent = customerHistory.reduce((sum, item) => sum + item.price, 0);
       document.getElementById('user-total-spent').innerText = `${totalSpent.toFixed(2)} ETB`;
+
+      // Generate Referral Link using user ID
+      const botUsername = "EthioDigitalStoreBot"; // Replace with your actual Telegram bot username
+      const referralLink = `https://t.me/${botUsername}?start=ref_${userProfile.id}`;
+      document.getElementById('referral-link-input').value = referralLink;
 
       const listEl = document.getElementById('history-list');
       listEl.innerHTML = '';
@@ -355,9 +373,33 @@
       document.getElementById('history-modal').classList.add('hidden');
     }
 
+    function copyReferralLink() {
+      const input = document.getElementById('referral-link-input');
+      input.select();
+      input.setSelectionRange(0, 99999);
+      navigator.clipboard.writeText(input.value);
+      alert("📋 Referral link copied to clipboard! Share it with your friends.");
+    }
+
+    function shareReferralTelegram() {
+      const link = document.getElementById('referral-link-input').value;
+      const text = encodeURIComponent("Check out Ethio Digital Store for amazing books, datasets, and design kits! Join here:");
+      const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${text}`;
+      if (tg && tg.openTelegramLink) {
+        tg.openTelegramLink(shareUrl);
+      } else {
+        window.open(shareUrl, '_blank');
+      }
+    }
+
     // Admin Upload Product Logic
     function handleProductUpload(e) {
       e.preventDefault();
+      if (!isUserAdmin) {
+        alert("Action forbidden. Unauthorized.");
+        return;
+      }
+
       const newProduct = {
         id: 'p_' + Date.now(),
         title: document.getElementById('prod-title').value,
@@ -378,7 +420,6 @@
 
     // Initial Render
     renderShop();
-    if (isAdmin) toggleAdminMode();
   </script>
 </body>
 </html>
