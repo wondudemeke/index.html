@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Digital Store & Admin Panel</title>
+  <title>Ethiopian Digital Store</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -15,32 +15,58 @@
   <!-- Header -->
   <header class="mb-6 flex justify-between items-center">
     <div>
-      <h1 id="page-title" class="text-2xl font-bold">Digital Store</h1>
-      <p id="page-subtitle" class="text-sm opacity-70">Books, Datasets & Design Assets</p>
+      <h1 class="text-2xl font-bold">Habesha Digital Store</h1>
+      <p class="text-sm opacity-70">Books, Datasets & Design Assets</p>
     </div>
     <button id="toggle-view" onclick="toggleAdminMode()" class="text-xs px-3 py-1 bg-gray-200 dark:bg-gray-800 rounded-lg">Admin Mode</button>
   </header>
 
   <!-- SHOP VIEW -->
   <div id="shop-view">
-    <div id="product-grid" class="grid grid-cols-1 gap-4"></div>
+    <div id="product-grid" class="grid grid-cols-1 gap-4 mb-6"></div>
   </div>
 
-  <!-- ADMIN UPLOAD VIEW (Hidden by default, triggered via ?admin=true) -->
+  <!-- PAYMENT MODAL (Hidden by default) -->
+  <div id="payment-modal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+    <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 max-w-sm w-full space-y-4 border border-gray-700">
+      <h3 class="text-lg font-bold">Complete Your Payment</h3>
+      <p class="text-xs opacity-80" id="pay-instruction">Transfer the exact amount to one of the accounts below:</p>
+      
+      <div class="bg-gray-100 dark:bg-slate-800 p-3 rounded-lg text-xs space-y-1">
+        <p><strong>Telebirr:</strong> <span class="text-blue-500 font-mono">0905158371</span></p>
+        <p><strong>Siinqee Bank:</strong> <span class="text-blue-500 font-mono">1036696630101</span></p>
+      </div>
+
+      <div class="space-y-2">
+        <label class="text-xs font-semibold">Your Telegram @username or Phone:</label>
+        <input type="text" id="buyer-contact" placeholder="@username" class="w-full p-2 rounded border bg-transparent text-sm">
+        
+        <label class="text-xs font-semibold">Transaction Reference / Receipt ID:</label>
+        <input type="text" id="txn-ref" placeholder="e.g., Telebirr Transaction ID" class="w-full p-2 rounded border bg-transparent text-sm">
+      </div>
+
+      <div class="flex gap-2 pt-2">
+        <button onclick="submitOrder()" class="w-full py-2 bg-green-600 text-white rounded-lg font-semibold text-sm">Confirm Payment</button>
+        <button onclick="closePaymentModal()" class="w-full py-2 bg-gray-400 text-white rounded-lg font-semibold text-sm">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADMIN UPLOAD VIEW -->
   <div id="admin-view" class="hidden space-y-4">
     <div class="p-4 rounded-xl border border-blue-500 bg-blue-50 dark:bg-slate-900">
-      <h2 class="text-lg font-bold mb-2">Upload New Product</h2>
+      <h2 class="text-lg font-bold mb-2">Upload New Digital Product</h2>
       <form id="upload-form" onsubmit="handleProductUpload(event)" class="space-y-3">
-        <input type="text" id="prod-title" placeholder="Product Title (e.g., Python Data Kit)" required class="w-full p-2 rounded border bg-transparent text-sm">
+        <input type="text" id="prod-title" placeholder="Product Title (e.g. Grade 12 Math E-Book)" required class="w-full p-2 rounded border bg-transparent text-sm">
         <select id="prod-type" class="w-full p-2 rounded border bg-transparent text-sm">
           <option value="book">Book</option>
-          <option value="data">Data Dataset</option>
+          <option value="data">Data / Dataset</option>
           <option value="design">Design Asset</option>
         </select>
-        <input type="number" id="prod-price" placeholder="Price in Telegram Stars (e.g. 150)" required class="w-full p-2 rounded border bg-transparent text-sm">
+        <input type="number" id="prod-price" placeholder="Price in ETB (e.g. 250)" required class="w-full p-2 rounded border bg-transparent text-sm">
         <textarea id="prod-desc" placeholder="Short description..." required class="w-full p-2 rounded border bg-transparent text-sm"></textarea>
-        <input type="text" id="prod-link" placeholder="Direct Download / File URL" required class="w-full p-2 rounded border bg-transparent text-sm">
-        <button type="submit" class="w-full py-2 bg-blue-600 text-white rounded-lg font-semibold text-sm">Publish Product</button>
+        <input type="text" id="prod-link" placeholder="Download Link (Google Drive / Telegram File Link)" required class="w-full p-2 rounded border bg-transparent text-sm">
+        <button type="submit" class="w-full py-2 bg-blue-600 text-white rounded-lg font-semibold text-sm">Publish to Store</button>
       </form>
     </div>
   </div>
@@ -51,15 +77,15 @@
 
     let isAdmin = window.location.search.includes('admin=true');
     let products = [];
+    let selectedProduct = null;
 
-    // Fetch products from backend server on load
-    async cmbFetchProducts() {
+    async function fetchProducts() {
       try {
         const res = await fetch('/api/products');
         products = await res.json();
         renderShop();
       } catch (e) {
-        console.error("Failed to load products");
+        console.error("Could not fetch products");
       }
     }
 
@@ -74,7 +100,7 @@
       const grid = document.getElementById('product-grid');
       grid.innerHTML = '';
       if (products.length === 0) {
-        grid.innerHTML = '<p class="text-sm opacity-50 text-center py-10">No products listed yet. Switch to Admin Mode to add items.</p>';
+        grid.innerHTML = '<p class="text-sm opacity-50 text-center py-10">No items available yet.</p>';
         return;
       }
       products.forEach(p => {
@@ -86,13 +112,55 @@
               <p class="text-sm opacity-70 mt-1">${p.desc}</p>
             </div>
             <div class="flex items-center justify-between mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-              <span class="font-bold text-base">${p.price} ⭐</span>
-              <button onclick="buyProduct('${p.id}')" class="px-4 py-2 rounded-lg text-sm font-semibold bg-blue-500 text-white active:scale-95 transition-all">
-                Buy with Stars
+              <span class="font-bold text-base text-green-600">${p.price} ETB</span>
+              <button onclick='openPaymentModal(${JSON.stringify(p)})' class="px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 text-white active:scale-95">
+                Buy Now
               </button>
             </div>
           </div>`;
       });
+    }
+
+    function openPaymentModal(product) {
+      selectedProduct = product;
+      document.getElementById('pay-instruction').innerText = `Pay ${product.price} ETB for "${product.title}" using Telebirr (0905158371) or Siinqee Bank (1036696630101):`;
+      document.getElementById('payment-modal').classList.remove('hidden');
+    }
+
+    function closePaymentModal() {
+      document.getElementById('payment-modal').classList.add('hidden');
+    }
+
+    async function submitOrder() {
+      const contact = document.getElementById('buyer-contact').value;
+      const txnRef = document.getElementById('txn-ref').value;
+
+      if (!contact || !txnRef) {
+        alert('Please fill in your contact information and transaction reference code.');
+        return;
+      }
+
+      const orderData = {
+        productTitle: selectedProduct.title,
+        price: selectedProduct.price,
+        downloadLink: selectedProduct.link,
+        contact: contact,
+        txnRef: txnRef
+      };
+
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderData)
+      });
+
+      if (res.ok) {
+        alert('Payment verification submitted! The admin will verify your Telebirr/Siinqee transfer and send your download link.');
+        closePaymentModal();
+        if (tg) tg.close();
+      } else {
+        alert('Error submitting order. Try again.');
+      }
     }
 
     async function handleProductUpload(e) {
@@ -101,7 +169,7 @@
         id: 'p_' + Date.now(),
         title: document.getElementById('prod-title').value,
         type: document.getElementById('prod-type').value,
-        price: parseInt(document.getElementById('prod-price').value),
+        price: parseFloat(document.getElementById('prod-price').value),
         desc: document.getElementById('prod-desc').value,
         link: document.getElementById('prod-link').value,
       };
@@ -115,20 +183,12 @@
       if (res.ok) {
         alert('Product published successfully!');
         document.getElementById('upload-form').reset();
-        cmbFetchProducts();
+        fetchProducts();
         toggleAdminMode();
       }
     }
 
-    function buyProduct(id) {
-      if (tg) {
-        // Send purchase intent back to bot to generate Telegram Star Invoice
-        tg.sendData(JSON.stringify({ action: 'buy', productId: id }));
-        tg.close();
-      }
-    }
-
-    cmbFetchProducts();
+    fetchProducts();
     if (isAdmin) toggleAdminMode();
   </script>
 </body>
