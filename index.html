@@ -1,159 +1,135 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Book Store Mini App</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body {
-            background-color: var(--tg-theme-bg-color, #ffffff);
-            color: var(--tg-theme-text-color, #000000);
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Digital Store & Admin Panel</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background-color: var(--tg-theme-bg-color, #ffffff); color: var(--tg-theme-text-color, #000000); }
+  </style>
 </head>
-<body class="p-4 font-sans min-h-screen pb-28">
+<body class="p-4 font-sans min-h-screen pb-24">
 
-    <!-- Header & View Toggles -->
-    <header class="flex justify-between items-center mb-6">
-        <div>
-            <h1 class="text-xl font-bold">📚 Book Store</h1>
-            <p class="text-xs opacity-70">Instant Digital Delivery</p>
-        </div>
-        <button id="admin-toggle" onclick="toggleAdminMode()" class="text-xs px-3 py-1.5 rounded-lg bg-gray-200 dark:bg-gray-800 font-medium">
-            Admin Panel
-        </button>
-    </header>
-
-    <!-- ADMIN UPLOAD SECTION (Hidden by default) -->
-    <div id="admin-panel" class="hidden mb-6 p-4 rounded-xl border border-blue-500 bg-blue-50 dark:bg-slate-900">
-        <h2 class="text-sm font-bold text-blue-600 dark:text-blue-400 mb-3">➕ Upload New Book</h2>
-        <form id="upload-form" onsubmit="handleUpload(event)" class="space-y-3">
-            <input type="text" id="book-title" placeholder="Book Title" required class="w-full p-2 text-sm rounded border bg-white dark:bg-slate-800 border-gray-300 dark:border-gray-700">
-            <textarea id="book-desc" placeholder="Short description..." required class="w-full p-2 text-sm rounded border bg-white dark:bg-slate-800 border-gray-300 dark:border-gray-700"></textarea>
-            <input type="number" id="book-price" placeholder="Price in Telegram Stars (e.g. 150)" required class="w-full p-2 text-sm rounded border bg-white dark:bg-slate-800 border-gray-300 dark:border-gray-700">
-            <input type="url" id="book-file-url" placeholder="Direct Download URL (PDF/EPUB)" required class="w-full p-2 text-sm rounded border bg-white dark:bg-slate-800 border-gray-300 dark:border-gray-700">
-            <button type="submit" class="w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold">Publish Book</button>
-        </form>
+  <!-- Header -->
+  <header class="mb-6 flex justify-between items-center">
+    <div>
+      <h1 id="page-title" class="text-2xl font-bold">Digital Store</h1>
+      <p id="page-subtitle" class="text-sm opacity-70">Books, Datasets & Design Assets</p>
     </div>
+    <button id="toggle-view" onclick="toggleAdminMode()" class="text-xs px-3 py-1 bg-gray-200 dark:bg-gray-800 rounded-lg">Admin Mode</button>
+  </header>
 
-    <!-- PRODUCT CATALOG -->
-    <div id="product-grid" class="grid grid-cols-1 gap-4">
-        <!-- Dynamic Products Injected Here -->
+  <!-- SHOP VIEW -->
+  <div id="shop-view">
+    <div id="product-grid" class="grid grid-cols-1 gap-4"></div>
+  </div>
+
+  <!-- ADMIN UPLOAD VIEW (Hidden by default, triggered via ?admin=true) -->
+  <div id="admin-view" class="hidden space-y-4">
+    <div class="p-4 rounded-xl border border-blue-500 bg-blue-50 dark:bg-slate-900">
+      <h2 class="text-lg font-bold mb-2">Upload New Product</h2>
+      <form id="upload-form" onsubmit="handleProductUpload(event)" class="space-y-3">
+        <input type="text" id="prod-title" placeholder="Product Title (e.g., Python Data Kit)" required class="w-full p-2 rounded border bg-transparent text-sm">
+        <select id="prod-type" class="w-full p-2 rounded border bg-transparent text-sm">
+          <option value="book">Book</option>
+          <option value="data">Data Dataset</option>
+          <option value="design">Design Asset</option>
+        </select>
+        <input type="number" id="prod-price" placeholder="Price in Telegram Stars (e.g. 150)" required class="w-full p-2 rounded border bg-transparent text-sm">
+        <textarea id="prod-desc" placeholder="Short description..." required class="w-full p-2 rounded border bg-transparent text-sm"></textarea>
+        <input type="text" id="prod-link" placeholder="Direct Download / File URL" required class="w-full p-2 rounded border bg-transparent text-sm">
+        <button type="submit" class="w-full py-2 bg-blue-600 text-white rounded-lg font-semibold text-sm">Publish Product</button>
+      </form>
     </div>
+  </div>
 
-    <script>
-        const tg = window.Telegram?.WebApp;
-        if (tg) {
-            tg.ready();
-            tg.expand();
-        }
+  <script>
+    const tg = window.Telegram?.WebApp;
+    if (tg) { tg.ready(); tg.expand(); }
 
-        // Hardcoded or dynamically fetched list of products
-        let products = JSON.parse(localStorage.getItem('my_books')) || [
-            { id: '1', title: 'Mastering JavaScript (PDF)', desc: 'Advanced architectural guide.', price: 200, fileUrl: 'https://example.com/sample.pdf' }
-        ];
+    let isAdmin = window.location.search.includes('admin=true');
+    let products = [];
 
-        let selectedProduct = null;
-        let isAdminOpen = false;
+    // Fetch products from backend server on load
+    async cmbFetchProducts() {
+      try {
+        const res = await fetch('/api/products');
+        products = await res.json();
+        renderShop();
+      } catch (e) {
+        console.error("Failed to load products");
+      }
+    }
 
-        function toggleAdminMode() {
-            isAdminOpen = !isAdminOpen;
-            const panel = document.getElementById('admin-panel');
-            const btn = document.getElementById('admin-toggle');
-            if (isAdminOpen) {
-                panel.classList.remove('hidden');
-                btn.textContent = 'Close Admin';
-            } else {
-                panel.classList.add('hidden');
-                btn.textContent = 'Admin Panel';
-            }
-        }
+    function toggleAdminMode() {
+      isAdmin = !isAdmin;
+      document.getElementById('shop-view').classList.toggle('hidden', isAdmin);
+      document.getElementById('admin-view').classList.toggle('hidden', !isAdmin);
+      document.getElementById('toggle-view').innerText = isAdmin ? 'Customer View' : 'Admin Mode';
+    }
 
-        function handleUpload(e) {
-            e.preventDefault();
-            const newBook = {
-                id: 'book_' + Date.now(),
-                title: document.getElementById('book-title').value,
-                desc: document.getElementById('book-desc').value,
-                price: parseInt(document.getElementById('book-price').value),
-                fileUrl: document.getElementById('book-file-url').value
-            };
+    function renderShop() {
+      const grid = document.getElementById('product-grid');
+      grid.innerHTML = '';
+      if (products.length === 0) {
+        grid.innerHTML = '<p class="text-sm opacity-50 text-center py-10">No products listed yet. Switch to Admin Mode to add items.</p>';
+        return;
+      }
+      products.forEach(p => {
+        grid.innerHTML += `
+          <div class="p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col justify-between">
+            <div>
+              <span class="text-xs uppercase px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-semibold">${p.type}</span>
+              <h2 class="text-lg font-semibold mt-2">${p.title}</h2>
+              <p class="text-sm opacity-70 mt-1">${p.desc}</p>
+            </div>
+            <div class="flex items-center justify-between mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+              <span class="font-bold text-base">${p.price} ⭐</span>
+              <button onclick="buyProduct('${p.id}')" class="px-4 py-2 rounded-lg text-sm font-semibold bg-blue-500 text-white active:scale-95 transition-all">
+                Buy with Stars
+              </button>
+            </div>
+          </div>`;
+      });
+    }
 
-            products.push(newBook);
-            localStorage.setItem('my_books', JSON.stringify(products));
-            
-            document.getElementById('upload-form').reset();
-            toggleAdminMode();
-            renderProducts();
-            tg?.showAlert('Book published successfully!');
-        }
+    async function handleProductUpload(e) {
+      e.preventDefault();
+      const newProduct = {
+        id: 'p_' + Date.now(),
+        title: document.getElementById('prod-title').value,
+        type: document.getElementById('prod-type').value,
+        price: parseInt(document.getElementById('prod-price').value),
+        desc: document.getElementById('prod-desc').value,
+        link: document.getElementById('prod-link').value,
+      };
 
-        function renderProducts() {
-            const grid = document.getElementById('product-grid');
-            grid.innerHTML = '';
+      const res = await fetch('/api/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newProduct)
+      });
 
-            products.forEach(p => {
-                const card = document.createElement('div');
-                card.className = "p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col justify-between";
-                card.innerHTML = `
-                    <div>
-                        <h2 class="text-base font-bold">${p.title}</h2>
-                        <p class="text-xs opacity-70 mt-1">${p.desc}</p>
-                    </div>
-                    <div class="flex items-center justify-between mt-4 pt-3 border-t border-gray-100 dark:border-gray-800">
-                        <span class="font-bold text-sm text-amber-500">${p.price} ⭐</span>
-                        <button onclick="selectProduct('${p.id}')" class="px-4 py-2 rounded-lg text-xs font-semibold bg-blue-500 text-white active:scale-95">
-                            Buy Now
-                        </button>
-                    </div>
-                `;
-                grid.appendChild(card);
-            });
-        }
+      if (res.ok) {
+        alert('Product published successfully!');
+        document.getElementById('upload-form').reset();
+        cmbFetchProducts();
+        toggleAdminMode();
+      }
+    }
 
-        function selectProduct(id) {
-            selectedProduct = products.find(p => p.id === id);
-            if (tg && tg.MainButton && selectedProduct) {
-                tg.MainButton.text = `Pay ${selectedProduct.price} ⭐ for ${selectedProduct.title}`;
-                tg.MainButton.show();
-                tg.MainButton.onClick(processPayment);
-            }
-        }
+    function buyProduct(id) {
+      if (tg) {
+        // Send purchase intent back to bot to generate Telegram Star Invoice
+        tg.sendData(JSON.stringify({ action: 'buy', productId: id }));
+        tg.close();
+      }
+    }
 
-        function processPayment() {
-            if (!selectedProduct) return;
-            
-            // Tell backend/bot to create a Telegram Stars Invoice for this user
-            fetch('https://YOUR_BACKEND_URL/create-invoice', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    userId: tg.initDataUnsafe?.user?.id,
-                    productId: selectedProduct.id,
-                    title: selectedProduct.title,
-                    price: selectedProduct.price
-                })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.invoiceLink) {
-                    // Open Telegram invoice native payment sheet
-                    tg.openInvoice(data.invoiceLink, (status) => {
-                        if (status === 'paid') {
-                            tg.showAlert('Payment successful! Check chat for your book file.');
-                            tg.close();
-                        }
-                    });
-                }
-            })
-            .catch(err => {
-                tg.showAlert('Error processing payment.');
-            });
-        }
-
-        renderProducts();
-    </script>
+    cmbFetchProducts();
+    if (isAdmin) toggleAdminMode();
+  </script>
 </body>
 </html>
