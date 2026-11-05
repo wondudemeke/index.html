@@ -65,8 +65,8 @@
           <p><strong>Siinqee Bank:</strong> <span class="text-blue-600 font-mono font-bold">1036696630101</span></p>
         </div>
         <input type="number" id="deposit-amount" placeholder="Amount paid in ETB (e.g. 500)" class="w-full p-2.5 rounded-lg border bg-transparent text-xs">
-        <textarea id="deposit-receipt" rows="3" placeholder='Paste full SMS like: "Dear Wandu You have transferred ETB 500.00... Your transaction number is DJS2E0GHUU..."' class="w-full p-2.5 rounded-lg border bg-transparent text-xs font-mono"></textarea>
-        <button onclick="processDeposit()" class="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white font-semibold text-xs rounded-lg">Confirm & Add to Wallet</button>
+        <textarea id="deposit-receipt" rows="3" placeholder='Paste full SMS or Telebirr link (e.g. https://transactioninfo.ethiotelecom.et/receipt/...)' class="w-full p-2.5 rounded-lg border bg-transparent text-xs font-mono"></textarea>
+        <button onclick="processDeposit()" class="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white font-semibold text-xs rounded-lg">Verify & Add to Wallet</button>
       </div>
 
       <!-- WITHDRAWAL SECTION -->
@@ -112,8 +112,8 @@
       <div id="payment-account-info" class="bg-blue-50 dark:bg-slate-800 p-3 rounded-lg text-xs space-y-1 border border-blue-200 dark:border-blue-900"></div>
 
       <div class="space-y-2">
-        <label class="text-xs font-semibold">Paste Full SMS Receipt or Transaction ID:</label>
-        <textarea id="txn-receipt-input" rows="3" placeholder='Paste full SMS like: "Dear Wandu You have transferred ETB 300.00... Your transaction number is DJS2E0GHUU..."' class="w-full p-2.5 rounded-lg border bg-transparent text-xs font-mono"></textarea>
+        <label class="text-xs font-semibold">Paste Full SMS Receipt or Ethiotelecom Link:</label>
+        <textarea id="txn-receipt-input" rows="3" placeholder='Paste full SMS or link like: "https://transactioninfo.ethiotelecom.et/receipt/DJS2E0GHUU"' class="w-full p-2.5 rounded-lg border bg-transparent text-xs font-mono"></textarea>
       </div>
 
       <div id="validation-msg" class="hidden p-2.5 rounded-lg text-xs font-medium"></div>
@@ -204,10 +204,10 @@
         </form>
       </div>
 
-      <!-- SUB-TAB 2: CUSTOMER ACTIVITY & MEMBER LIST WITH PHONE & WITHDRAWALS -->
+      <!-- SUB-TAB 2: CUSTOMER ACTIVITY & MEMBER LIST -->
       <div id="admin-sub-customers" class="hidden space-y-4">
         <div class="flex justify-between items-center">
-          <h3 class="text-sm font-bold uppercase tracking-wider">Registered App Members, Phone Numbers & Activity</h3>
+          <h3 class="text-sm font-bold uppercase tracking-wider">Registered App Members & Direct Contacts</h3>
           <span id="admin-total-members" class="text-xs font-bold bg-purple-200 text-purple-900 px-2 py-0.5 rounded">0 Members</span>
         </div>
         
@@ -328,6 +328,20 @@
       }
     }
 
+    function contactCustomerTelegram(username) {
+      const cleanHandle = username.replace('@', '').trim();
+      if (!cleanHandle || cleanHandle === 'Guest_User') {
+        alert("This customer does not have a valid public Telegram username.");
+        return;
+      }
+      const tgUrl = `https://t.me/${cleanHandle}`;
+      if (tg && tg.openTelegramLink) {
+        tg.openTelegramLink(tgUrl);
+      } else {
+        window.open(tgUrl, '_blank');
+      }
+    }
+
     function renderAdminCustomerList() {
       if (!isUserAdmin) return;
       const listContainer = document.getElementById('admin-customer-list');
@@ -381,8 +395,8 @@
         }
 
         const phoneDisplay = m.phone 
-          ? `<a href="tel:${m.phone}" class="px-2 py-1 bg-green-600 text-white rounded text-[11px] font-bold">📞 Call ${m.phone}</a>` 
-          : `<span class="text-[10px] opacity-50 italic">No Phone Provided</span>`;
+          ? `<a href="tel:${m.phone}" class="px-2 py-1 bg-green-600 text-white rounded text-[11px] font-bold">📞 ${m.phone}</a>` 
+          : `<span class="text-[10px] opacity-50 italic">No Phone</span>`;
 
         listContainer.innerHTML += `
           <div class="p-3.5 border border-purple-200 dark:border-purple-900 bg-white dark:bg-slate-900 rounded-xl space-y-3 shadow-sm">
@@ -390,9 +404,9 @@
               <div>
                 <span class="font-bold text-sm text-purple-700 dark:text-purple-300">${m.name}</span>
                 <span class="text-xs opacity-70 block">${m.username} (ID: ${m.id})</span>
-                <div class="mt-1 flex gap-2 items-center flex-wrap">
+                <div class="mt-2 flex gap-2 items-center flex-wrap">
                   ${phoneDisplay}
-                  <a href="https://t.me/${m.username.replace('@','')}" target="_blank" class="px-2 py-1 bg-blue-500 text-white rounded text-[11px] font-bold">💬 Chat Telegram</a>
+                  <button onclick="contactCustomerTelegram('${m.username}')" class="px-2.5 py-1 bg-sky-500 hover:bg-sky-600 text-white rounded text-[11px] font-bold">💬 Direct Contact on Telegram</button>
                 </div>
               </div>
               <div class="text-right">
@@ -485,29 +499,54 @@
       }
     }
 
+    function parseReceiptData(rawInput) {
+      // Check for Ethiotelecom link
+      const linkMatch = rawInput.match(/(https:\/\/transactioninfo\.ethiotelecom\.et\/receipt\/([A-Z0-9]+))/i);
+      if (linkMatch) {
+        return { txnId: linkMatch[2].toUpperCase(), type: 'link', source: linkMatch[1] };
+      }
+
+      // Check for transaction reference in SMS text
+      const txnMatch = rawInput.match(/(?:transaction number is|transaction number|txn|id)[:\s]*([A-Z0-9]{8,12})/i);
+      if (txnMatch && txnMatch[1]) {
+        return { txnId: txnMatch[1].toUpperCase(), type: 'sms', source: rawInput };
+      }
+
+      // Fallback if raw ID is entered directly
+      const cleanId = rawInput.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+      if (cleanId.length >= 8 && cleanId.length <= 12) {
+        return { txnId: cleanId, type: 'raw', source: rawInput };
+      }
+
+      return null;
+    }
+
     function processDeposit() {
       const amount = parseFloat(document.getElementById('deposit-amount').value);
-      const receipt = document.getElementById('deposit-receipt').value.trim();
+      const receiptInput = document.getElementById('deposit-receipt').value.trim();
 
-      if (!amount || amount <= 0 || !receipt) {
-        showWalletMsg("Please enter a valid deposit amount and paste your payment receipt.", "bg-red-100 text-red-800");
+      if (!amount || amount <= 0 || !receiptInput) {
+        showWalletMsg("Please enter a valid deposit amount and paste your receipt link or SMS text.", "bg-red-100 text-red-800");
         return;
       }
 
-      const txnMatch = receipt.match(/(?:transaction number is|transaction number|txn|id)[:\s]*([A-Z0-9]{8,12})/i);
-      const txnId = txnMatch ? txnMatch[1].toUpperCase() : 'DEP_' + Date.now();
-
-      if (usedTxnNumbers.includes(txnId)) {
-        showWalletMsg(`Transaction ID ${txnId} has already been used!`, "bg-red-100 text-red-800");
+      const parsedReceipt = parseReceiptData(receiptInput);
+      if (!parsedReceipt) {
+        showWalletMsg("Invalid receipt! Could not detect a valid transaction ID or Ethiotelecom receipt link.", "bg-red-100 text-red-800");
         return;
       }
 
-      usedTxnNumbers.push(txnId);
+      if (usedTxnNumbers.includes(parsedReceipt.txnId)) {
+        showWalletMsg(`⚠️ Transaction ID "${parsedReceipt.txnId}" has already been used!`, "bg-red-100 text-red-800");
+        return;
+      }
+
+      usedTxnNumbers.push(parsedReceipt.txnId);
       localStorage.setItem('ethio_used_txns', JSON.stringify(usedTxnNumbers));
 
       walletBalance += amount;
       updateWalletDisplay();
-      showWalletMsg(`✅ Successfully deposited ${amount} ETB to your wallet!`, "bg-green-100 text-green-800");
+      showWalletMsg(`✅ Successfully verified and deposited ${amount} ETB! (Ref: ${parsedReceipt.txnId})`, "bg-green-100 text-green-800");
       document.getElementById('deposit-amount').value = '';
       document.getElementById('deposit-receipt').value = '';
     }
@@ -650,26 +689,26 @@
       const rawInput = document.getElementById('txn-receipt-input').value.trim();
 
       if (!rawInput) {
-        showValidationMsg('Please paste your full Telebirr SMS or transaction reference number.', 'bg-red-100 text-red-800');
+        showValidationMsg('Please paste your full Telebirr SMS or transaction receipt link.', 'bg-red-100 text-red-800');
         return;
       }
 
-      let txnNumber = '';
-      const txnRegex = /(?:transaction number is|transaction number|txn|id)[:\s]*([A-Z0-9]{8,12})/i;
-      const matchTxn = rawInput.match(txnRegex);
-
-      txnNumber = matchTxn && matchTxn[1] ? matchTxn[1].toUpperCase() : rawInput.toUpperCase();
-
-      if (usedTxnNumbers.includes(txnNumber)) {
-        showValidationMsg(`⚠️ Transaction ID "${txnNumber}" has already been used! Re-use is forbidden.`, 'bg-red-100 text-red-800');
+      const parsedReceipt = parseReceiptData(rawInput);
+      if (!parsedReceipt) {
+        showValidationMsg('Invalid receipt format! Could not find transaction ID or receipt link.', 'bg-red-100 text-red-800');
         return;
       }
 
-      usedTxnNumbers.push(txnNumber);
+      if (usedTxnNumbers.includes(parsedReceipt.txnId)) {
+        showValidationMsg(`⚠️ Transaction ID "${parsedReceipt.txnId}" has already been used! Re-use is forbidden.`, 'bg-red-100 text-red-800');
+        return;
+      }
+
+      usedTxnNumbers.push(parsedReceipt.txnId);
       localStorage.setItem('ethio_used_txns', JSON.stringify(usedTxnNumbers));
 
       const purchaseRecord = {
-        txnId: txnNumber,
+        txnId: parsedReceipt.txnId,
         productTitle: selectedProduct.title,
         price: selectedProduct.price,
         date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString(),
@@ -681,7 +720,7 @@
       localStorage.setItem('ethio_customer_history_' + userProfile.id, JSON.stringify(customerHistory));
 
       registerMember();
-      showValidationMsg(`✅ Payment Verified! Txn ID: ${txnNumber}. Opening your download link...`, 'bg-green-100 text-green-800');
+      showValidationMsg(`✅ Payment Verified! Txn ID: ${parsedReceipt.txnId}. Opening your download link...`, 'bg-green-100 text-green-800');
 
       setTimeout(() => {
         closePaymentModal();
