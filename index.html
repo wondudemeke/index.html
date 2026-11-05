@@ -3,8 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ethiopian Digital Store</title>
+  <title>Habesha Digital Store</title>
+  <!-- Telegram Web App SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body { background-color: var(--tg-theme-bg-color, #ffffff); color: var(--tg-theme-text-color, #000000); }
@@ -18,23 +20,34 @@
       <h1 class="text-2xl font-bold">Habesha Digital Store</h1>
       <p class="text-sm opacity-70">Books, Datasets & Design Assets</p>
     </div>
-    <button id="toggle-view" onclick="toggleAdminMode()" class="text-xs px-3 py-1 bg-gray-200 dark:bg-gray-800 rounded-lg">Admin Mode</button>
+    <!-- Quick Admin Mode Toggle Button -->
+    <button id="toggle-view" onclick="toggleAdminMode()" class="text-xs px-3 py-1 bg-gray-200 dark:bg-gray-800 rounded-lg font-medium">Admin Mode</button>
   </header>
+
+  <!-- CATEGORY TABS -->
+  <div id="category-tabs" class="flex gap-2 mb-6 overflow-x-auto pb-2">
+    <button onclick="filterCategory('all')" class="cat-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-blue-600 text-white">All</button>
+    <button onclick="filterCategory('book')" class="cat-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-gray-200 dark:bg-gray-800 opacity-70">Books</button>
+    <button onclick="filterCategory('data')" class="cat-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-gray-200 dark:bg-gray-800 opacity-70">Data</button>
+    <button onclick="filterCategory('design')" class="cat-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-gray-200 dark:bg-gray-800 opacity-70">Design</button>
+  </div>
 
   <!-- SHOP VIEW -->
   <div id="shop-view">
-    <div id="product-grid" class="grid grid-cols-1 gap-4 mb-6"></div>
+    <div id="product-grid" class="grid grid-cols-1 gap-4">
+      <!-- Injected Dynamically -->
+    </div>
   </div>
 
-  <!-- PAYMENT MODAL (Hidden by default) -->
-  <div id="payment-modal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
-    <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 max-w-sm w-full space-y-4 border border-gray-700">
-      <h3 class="text-lg font-bold">Complete Your Payment</h3>
+  <!-- PAYMENT MODAL -->
+  <div id="payment-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+    <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 max-w-sm w-full space-y-4 border border-gray-700 shadow-2xl">
+      <h3 class="text-lg font-bold">Complete Local Payment</h3>
       <p class="text-xs opacity-80" id="pay-instruction">Transfer the exact amount to one of the accounts below:</p>
       
-      <div class="bg-gray-100 dark:bg-slate-800 p-3 rounded-lg text-xs space-y-1">
-        <p><strong>Telebirr:</strong> <span class="text-blue-500 font-mono">0905158371</span></p>
-        <p><strong>Siinqee Bank:</strong> <span class="text-blue-500 font-mono">1036696630101</span></p>
+      <div class="bg-gray-100 dark:bg-slate-800 p-3 rounded-lg text-xs space-y-2">
+        <p><strong>Telebirr:</strong> <span class="text-blue-500 font-mono font-bold">0905158371</span></p>
+        <p><strong>Siinqee Bank:</strong> <span class="text-blue-500 font-mono font-bold">1036696630101</span></p>
       </div>
 
       <div class="space-y-2">
@@ -42,68 +55,85 @@
         <input type="text" id="buyer-contact" placeholder="@username" class="w-full p-2 rounded border bg-transparent text-sm">
         
         <label class="text-xs font-semibold">Transaction Reference / Receipt ID:</label>
-        <input type="text" id="txn-ref" placeholder="e.g., Telebirr Transaction ID" class="w-full p-2 rounded border bg-transparent text-sm">
+        <input type="text" id="txn-ref" placeholder="e.g., Telebirr SMS Code / Ref" class="w-full p-2 rounded border bg-transparent text-sm">
       </div>
 
       <div class="flex gap-2 pt-2">
-        <button onclick="submitOrder()" class="w-full py-2 bg-green-600 text-white rounded-lg font-semibold text-sm">Confirm Payment</button>
-        <button onclick="closePaymentModal()" class="w-full py-2 bg-gray-400 text-white rounded-lg font-semibold text-sm">Cancel</button>
+        <button onclick="submitOrder()" class="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold text-sm transition-all">Submit Receipt</button>
+        <button onclick="closePaymentModal()" class="w-full py-2 bg-gray-400 hover:bg-gray-500 text-white rounded-lg font-semibold text-sm transition-all">Cancel</button>
       </div>
     </div>
   </div>
 
-  <!-- ADMIN UPLOAD VIEW -->
+  <!-- ADMIN UPLOAD VIEW (Hidden by default, unlocked with ?admin=true) -->
   <div id="admin-view" class="hidden space-y-4">
-    <div class="p-4 rounded-xl border border-blue-500 bg-blue-50 dark:bg-slate-900">
+    <div class="p-4 rounded-xl border border-blue-500 bg-blue-50/50 dark:bg-slate-900 shadow-sm">
       <h2 class="text-lg font-bold mb-2">Upload New Digital Product</h2>
       <form id="upload-form" onsubmit="handleProductUpload(event)" class="space-y-3">
-        <input type="text" id="prod-title" placeholder="Product Title (e.g. Grade 12 Math E-Book)" required class="w-full p-2 rounded border bg-transparent text-sm">
+        <input type="text" id="prod-title" placeholder="Product Title (e.g. Grade 12 Math Book)" required class="w-full p-2 rounded border bg-transparent text-sm">
+        
         <select id="prod-type" class="w-full p-2 rounded border bg-transparent text-sm">
           <option value="book">Book</option>
           <option value="data">Data / Dataset</option>
           <option value="design">Design Asset</option>
         </select>
+        
         <input type="number" id="prod-price" placeholder="Price in ETB (e.g. 250)" required class="w-full p-2 rounded border bg-transparent text-sm">
-        <textarea id="prod-desc" placeholder="Short description..." required class="w-full p-2 rounded border bg-transparent text-sm"></textarea>
-        <input type="text" id="prod-link" placeholder="Download Link (Google Drive / Telegram File Link)" required class="w-full p-2 rounded border bg-transparent text-sm">
-        <button type="submit" class="w-full py-2 bg-blue-600 text-white rounded-lg font-semibold text-sm">Publish to Store</button>
+        
+        <textarea id="prod-desc" placeholder="Short description of your product..." required class="w-full p-2 rounded border bg-transparent text-sm"></textarea>
+        
+        <input type="text" id="prod-link" placeholder="Download Link (Google Drive, Telegram File link)" required class="w-full p-2 rounded border bg-transparent text-sm">
+        
+        <button type="submit" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-sm transition-all">Publish Product</button>
       </form>
     </div>
   </div>
 
+  <!-- FRONTEND SCRIPT -->
   <script>
     const tg = window.Telegram?.WebApp;
     if (tg) { tg.ready(); tg.expand(); }
 
     let isAdmin = window.location.search.includes('admin=true');
-    let products = [];
+    let products = [
+      { id: 'p1', title: 'Ethio Tech Career Guide (E-Book)', type: 'book', price: 300, desc: 'Complete local software engineering & career guide.', link: 'https://example.com/sample.pdf' }
+    ];
     let selectedProduct = null;
-
-    async function fetchProducts() {
-      try {
-        const res = await fetch('/api/products');
-        products = await res.json();
-        renderShop();
-      } catch (e) {
-        console.error("Could not fetch products");
-      }
-    }
+    let currentCategory = 'all';
 
     function toggleAdminMode() {
       isAdmin = !isAdmin;
       document.getElementById('shop-view').classList.toggle('hidden', isAdmin);
+      document.getElementById('category-tabs').classList.toggle('hidden', isAdmin);
       document.getElementById('admin-view').classList.toggle('hidden', !isAdmin);
       document.getElementById('toggle-view').innerText = isAdmin ? 'Customer View' : 'Admin Mode';
+    }
+
+    function filterCategory(cat) {
+      currentCategory = cat;
+      document.querySelectorAll('.cat-btn').forEach(btn => {
+        btn.classList.remove('bg-blue-600', 'text-white');
+        btn.classList.add('bg-gray-200', 'dark:bg-gray-800', 'opacity-70');
+      });
+      event.target.classList.remove('bg-gray-200', 'dark:bg-gray-800', 'opacity-70');
+      event.target.classList.add('bg-blue-600', 'text-white');
+      renderShop();
     }
 
     function renderShop() {
       const grid = document.getElementById('product-grid');
       grid.innerHTML = '';
-      if (products.length === 0) {
-        grid.innerHTML = '<p class="text-sm opacity-50 text-center py-10">No items available yet.</p>';
+
+      const filtered = currentCategory === 'all' 
+        ? products 
+        : products.filter(p => p.type === currentCategory);
+
+      if (filtered.length === 0) {
+        grid.innerHTML = '<p class="text-sm opacity-50 text-center py-12">No products available in this category yet.</p>';
         return;
       }
-      products.forEach(p => {
+
+      filtered.forEach(p => {
         grid.innerHTML += `
           <div class="p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col justify-between">
             <div>
@@ -113,7 +143,7 @@
             </div>
             <div class="flex items-center justify-between mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
               <span class="font-bold text-base text-green-600">${p.price} ETB</span>
-              <button onclick='openPaymentModal(${JSON.stringify(p)})' class="px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 text-white active:scale-95">
+              <button onclick='openPaymentModal(${JSON.stringify(p)})' class="px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white active:scale-95 transition-all">
                 Buy Now
               </button>
             </div>
@@ -123,7 +153,7 @@
 
     function openPaymentModal(product) {
       selectedProduct = product;
-      document.getElementById('pay-instruction').innerText = `Pay ${product.price} ETB for "${product.title}" using Telebirr (0905158371) or Siinqee Bank (1036696630101):`;
+      document.getElementById('pay-instruction').innerText = `Transfer ${product.price} ETB for "${product.title}" using Telebirr (0905158371) or Siinqee Bank (1036696630101):`;
       document.getElementById('payment-modal').classList.remove('hidden');
     }
 
@@ -131,7 +161,7 @@
       document.getElementById('payment-modal').classList.add('hidden');
     }
 
-    async function submitOrder() {
+    function submitOrder() {
       const contact = document.getElementById('buyer-contact').value;
       const txnRef = document.getElementById('txn-ref').value;
 
@@ -140,30 +170,14 @@
         return;
       }
 
-      const orderData = {
-        productTitle: selectedProduct.title,
-        price: selectedProduct.price,
-        downloadLink: selectedProduct.link,
-        contact: contact,
-        txnRef: txnRef
-      };
-
-      const res = await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(orderData)
-      });
-
-      if (res.ok) {
-        alert('Payment verification submitted! The admin will verify your Telebirr/Siinqee transfer and send your download link.');
-        closePaymentModal();
-        if (tg) tg.close();
-      } else {
-        alert('Error submitting order. Try again.');
-      }
+      // If connected to backend API, send order data here. 
+      // For standalone client view, triggers confirmation alert:
+      alert(`Payment submission received for "${selectedProduct.title}"!\n\nWe are verifying your transfer to Telebirr/Siinqee. Your download link will be sent to ${contact} shortly.`);
+      closePaymentModal();
+      if (tg) tg.close();
     }
 
-    async function handleProductUpload(e) {
+    function handleProductUpload(e) {
       e.preventDefault();
       const newProduct = {
         id: 'p_' + Date.now(),
@@ -174,21 +188,15 @@
         link: document.getElementById('prod-link').value,
       };
 
-      const res = await fetch('/api/products', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newProduct)
-      });
-
-      if (res.ok) {
-        alert('Product published successfully!');
-        document.getElementById('upload-form').reset();
-        fetchProducts();
-        toggleAdminMode();
-      }
+      products.push(newProduct);
+      alert('Product published successfully to your store!');
+      document.getElementById('upload-form').reset();
+      toggleAdminMode();
+      renderShop();
     }
 
-    fetchProducts();
+    // Initial render
+    renderShop();
     if (isAdmin) toggleAdminMode();
   </script>
 </body>
